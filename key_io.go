@@ -34,6 +34,11 @@ func readName(r io.Reader) (string, error) {
 		if b[0] == 0 {
 			break
 		}
+
+		if len(name) == MaxKeyNameBytes {
+			return "", fmt.Errorf("%w: max=%d", ErrKeyNameTooLong, MaxKeyNameBytes)
+		}
+
 		name = append(name, b[0])
 	}
 
@@ -60,11 +65,14 @@ func readMetadata(r io.Reader) (headerKey, headerExtra uint32, headerTag string,
 	return headerKey, headerExtra, string(tag[:]), nil
 }
 
-// readKeyPublicData reads length (bits), exponent E, and modulus N (reversed LE).
-func readKeyPublicData(r io.Reader) (lengthBits uint32, exponent uint32, n *big.Int, err error) {
+// readKeyPublicDataFor reads key length, exponent E, and reversed modulus N.
+func readKeyPublicDataFor(r io.Reader, baseErr error) (lengthBits uint32, exponent uint32, n *big.Int, err error) {
 	lengthBits, err = readU32LE(r)
 	if err != nil {
 		return 0, 0, nil, fmt.Errorf("read key length: %w", err)
+	}
+	if err := validateBIBitLen(int(lengthBits), baseErr); err != nil {
+		return 0, 0, nil, err
 	}
 
 	exponent, err = readU32LE(r)
@@ -90,7 +98,17 @@ func checkKeyFileSize(fileSize int64, nameLen int, blockSize uint32) error {
 }
 
 // writeKeyHeader writes name\0, blockSize (LE), headerKey, headerExtra, tag (4 bytes), length (LE), exponent (LE).
-func writeKeyHeader(w io.Writer, name string, blockSize, headerKey, headerExtra uint32, tag string, lengthBits, exponent uint32) error {
+func writeKeyHeader(
+	w io.Writer,
+	name string,
+	blockSize, headerKey, headerExtra uint32,
+	tag string,
+	lengthBits, exponent uint32,
+) error {
+	if len(name) > MaxKeyNameBytes {
+		return fmt.Errorf("%w: got=%d max=%d", ErrKeyNameTooLong, len(name), MaxKeyNameBytes)
+	}
+
 	if _, err := w.Write(append([]byte(name), 0)); err != nil {
 		return err
 	}

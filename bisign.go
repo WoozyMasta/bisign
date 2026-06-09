@@ -24,12 +24,7 @@ func LoadSignature(path string) (*SignatureFile, error) {
 
 // LoadSignatureFromReader reads .bisign bytes from r.
 func LoadSignatureFromReader(r io.Reader) (*SignatureFile, error) {
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return nil, fmt.Errorf("read signature data: %w", err)
-	}
-
-	return ParseSignature(data)
+	return loadSignatureFromReader(r)
 }
 
 // ParseSignature parses a .bisign payload from memory.
@@ -44,7 +39,7 @@ func loadSignatureFromReader(r io.Reader) (*SignatureFile, error) {
 		return nil, fmt.Errorf("read embedded public key: %w", err)
 	}
 
-	block1, err := readSigBlock(r)
+	block1, err := readSigBlock(r, pub.Key.Size())
 	if err != nil {
 		return nil, fmt.Errorf("read block1: %w", err)
 	}
@@ -59,12 +54,12 @@ func loadSignatureFromReader(r io.Reader) (*SignatureFile, error) {
 		return nil, err
 	}
 
-	block2, err := readSigBlock(r)
+	block2, err := readSigBlock(r, pub.Key.Size())
 	if err != nil {
 		return nil, fmt.Errorf("read block2: %w", err)
 	}
 
-	block3, err := readSigBlock(r)
+	block3, err := readSigBlock(r, pub.Key.Size())
 	if err != nil {
 		return nil, fmt.Errorf("read block3: %w", err)
 	}
@@ -84,11 +79,15 @@ func loadSignatureFromReader(r io.Reader) (*SignatureFile, error) {
 	return sig, nil
 }
 
-// readSigBlock reads uint32 size then size bytes.
-func readSigBlock(r io.Reader) ([]byte, error) {
+// readSigBlock reads a block only when its size matches the RSA key size.
+func readSigBlock(r io.Reader, expectedSize int) ([]byte, error) {
 	size, err := readU32LE(r)
 	if err != nil {
 		return nil, err
+	}
+
+	if int64(size) != int64(expectedSize) {
+		return nil, fmt.Errorf("%w: got=%d expected=%d", ErrSignatureSize, size, expectedSize)
 	}
 
 	buf := make([]byte, size)

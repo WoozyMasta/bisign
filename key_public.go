@@ -78,12 +78,8 @@ func loadPublicFromReader(r io.Reader, fileSize int64) (*PublicKeyFile, error) {
 		return nil, fmt.Errorf("%w: want %q got %q", ErrInvalidKeyTag, PublicKeyTag, headerTag)
 	}
 
-	lengthBits, exponent, n, err := readKeyPublicData(r)
+	lengthBits, exponent, n, err := readKeyPublicDataFor(r, ErrInvalidPublicKey)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := validateBIBitLen(int(lengthBits), ErrInvalidPublicKey); err != nil {
 		return nil, err
 	}
 

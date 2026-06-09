@@ -22,6 +22,10 @@ const (
 
 	// MinKeyBits is the minimal supported RSA key size.
 	MinKeyBits = 512
+	// MaxKeyBits bounds memory use when parsing BI RSA keys.
+	MaxKeyBits = 16384
+	// MaxKeyNameBytes bounds memory use when parsing BI key names.
+	MaxKeyNameBytes = 1024
 )
 
 // Version is signature format versions supported by BI signing.

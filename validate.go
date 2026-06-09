@@ -139,6 +139,16 @@ func validateBIBitLen(bits int, baseErr error) error {
 
 // validateKeyBitLen checks BI key bit-length constraints.
 func validateKeyBitLen(bits int) error {
+	if bits > MaxKeyBits {
+		return fmt.Errorf(
+			"%w: %w: got=%d max=%d",
+			ErrInvalidKeyLength,
+			ErrKeyLengthTooLarge,
+			bits,
+			MaxKeyBits,
+		)
+	}
+
 	bits32 := safeU32(bits)
 	if !isPowerOfTwo(bits32) {
 		return fmt.Errorf(

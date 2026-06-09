@@ -81,12 +81,8 @@ func loadPrivateFromReader(r io.Reader, fileSize int64) (*PrivateKeyFile, error)
 		return nil, fmt.Errorf("%w: want %q got %q", ErrInvalidKeyTag, PrivateKeyTag, headerTag)
 	}
 
-	lengthBits, exponent, fileN, err := readKeyPublicData(r)
+	lengthBits, exponent, fileN, err := readKeyPublicDataFor(r, ErrInvalidPrivateKey)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := validateBIBitLen(int(lengthBits), ErrInvalidPrivateKey); err != nil {
 		return nil, err
 	}
 

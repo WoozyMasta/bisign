@@ -64,4 +64,8 @@ var (
 	ErrKeyLengthNotPowerOfTwo = errors.New("key length must be a power of two")
 	// ErrKeyLengthTooSmall means key length is below MinKeyBits.
 	ErrKeyLengthTooSmall = errors.New("key length is below minimum")
+	// ErrKeyLengthTooLarge means key length is above MaxKeyBits.
+	ErrKeyLengthTooLarge = errors.New("key length is above maximum")
+	// ErrKeyNameTooLong means key name exceeds MaxKeyNameBytes.
+	ErrKeyNameTooLong = errors.New("key name is too long")
 )
