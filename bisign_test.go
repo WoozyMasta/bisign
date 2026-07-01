@@ -56,6 +56,21 @@ func TestGenerateLoadWriteRoundtrip(t *testing.T) {
 	}
 }
 
+func TestLoadRSAPrivateRejectsOpenSSH(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "id_rsa")
+	data := []byte("-----BEGIN OPENSSH PRIVATE KEY-----\nZmFrZQ==\n-----END OPENSSH PRIVATE KEY-----\n")
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	_, err := LoadRSAPrivate(path, "")
+	if !errors.Is(err, ErrOpenSSHPrivateKeyUnsupported) {
+		t.Fatalf("expected ErrOpenSSHPrivateKeyUnsupported, got: %v", err)
+	}
+}
+
 func TestSignHashesRecoverVerify(t *testing.T) {
 	priv, err := Generate("sigkey", 1024)
 	if err != nil {

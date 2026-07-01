@@ -13,45 +13,14 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"golang.org/x/crypto/ssh"
 )
 
-// LoadRSAPrivate loads RSA private key from OpenSSH, PEM, or DER formats.
-// When key is encrypted, passphrase must be provided.
+// LoadRSAPrivate loads RSA private keys from PEM or DER formats.
+// OpenSSH private keys are not supported. Encrypted legacy PEM requires passphrase.
 func LoadRSAPrivate(path string, passphrase string) (*rsa.PrivateKey, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", path, err)
-	}
-
-	// ssh-keygen default output is "OPENSSH PRIVATE KEY" PEM. Let ssh handle it first.
-	{
-		var (
-			v   any
-			err error
-		)
-		if passphrase != "" {
-			v, err = ssh.ParseRawPrivateKeyWithPassphrase(data, []byte(passphrase))
-		} else {
-			v, err = ssh.ParseRawPrivateKey(data)
-		}
-
-		if err == nil {
-			key, ok := v.(*rsa.PrivateKey)
-			if !ok {
-				return nil, ErrNotRSAPrivateKey
-			}
-			return key, nil
-		}
-
-		if isIncorrectPassword(err) {
-			return nil, fmt.Errorf("incorrect passphrase for %s", path)
-		}
-
-		if isPassphraseMissing(err) {
-			return nil, ErrEncryptedPrivateKey
-		}
 	}
 
 	if hasPEM(data) {
@@ -109,8 +78,11 @@ func parseRSAPrivatePEM(path string, data []byte, passphrase string) (*rsa.Priva
 			}
 			return key, nil
 
+		case "OPENSSH PRIVATE KEY":
+			return nil, ErrOpenSSHPrivateKeyUnsupported
+
 		case "ENCRYPTED PRIVATE KEY":
-			return nil, fmt.Errorf("%w; provide unencrypted PEM or OpenSSH key", ErrEncryptedPKCS8NotSupported)
+			return nil, fmt.Errorf("%w; provide unencrypted PEM or DER", ErrEncryptedPKCS8NotSupported)
 		}
 	}
 
@@ -152,11 +124,4 @@ func parseRSAPrivateDER(data []byte) (*rsa.PrivateKey, error) {
 // isIncorrectPassword normalizes incorrect passphrase detection across parsers.
 func isIncorrectPassword(err error) bool {
 	return errors.Is(err, x509.IncorrectPasswordError)
-}
-
-// isPassphraseMissing reports whether OpenSSH parser requires passphrase input.
-func isPassphraseMissing(err error) bool {
-	var pm *ssh.PassphraseMissingError
-	ok := errors.As(err, &pm)
-	return ok
 }

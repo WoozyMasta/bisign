@@ -12,7 +12,7 @@ and metadata inspection.
 * Supports `io.Reader` and `io.Writer` for payloads.
 * Recovers signed hashes from `.bisign`.
 * Signs and verifies `HashSet` values (three SHA1 digests).
-* Imports RSA private keys from common OpenSSH/PEM/DER sources.
+* Imports RSA private keys from PEM/DER sources.
 * Generates RSA key pairs with package-supported bit sizes.
 
 > [!NOTE]  

@@ -50,6 +50,8 @@ var (
 	ErrNotRSAPrivateKey = errors.New("private key is not RSA")
 	// ErrEncryptedPrivateKey means the private key is encrypted; provide passphrase.
 	ErrEncryptedPrivateKey = errors.New("private key is encrypted; provide passphrase")
+	// ErrOpenSSHPrivateKeyUnsupported means OpenSSH private keys are unsupported.
+	ErrOpenSSHPrivateKeyUnsupported = errors.New("OpenSSH private keys are unsupported")
 	// ErrPKCS8NotRSA means the PKCS#8 key is not an RSA private key.
 	ErrPKCS8NotRSA = errors.New("PKCS#8 key is not an RSA private key")
 	// ErrEncryptedPKCS8NotSupported means encrypted PKCS#8 PEM is not supported.
