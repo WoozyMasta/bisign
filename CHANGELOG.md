@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning][].
 ### Removed
 -->
 
+## [Unreleased]
+
+### Changed
+
+* Bound memory use while parsing BI keys and signatures
+  by validating declared lengths before allocation
+  and limiting key-name and RSA-key sizes.
+* Lowered the minimum Go version to 1.22.
+
+### Removed
+
+* Removed OpenSSH private-key parsing and its `golang.org/x/crypto` dependency.
+  `LoadRSAPrivate` continues to support PEM and DER keys.
+
 ## [0.1.0][] - 2026-02-21
 
 ### Added
