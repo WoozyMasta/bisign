@@ -26,6 +26,14 @@ const (
 	MaxKeyBits = 16384
 	// MaxKeyNameBytes bounds memory use when parsing BI key names.
 	MaxKeyNameBytes = 1024
+	// MaxPublicKeyFileBytes bounds .bikey input size.
+	MaxPublicKeyFileBytes = 4 << 10
+	// MaxPrivateKeyFileBytes bounds .biprivatekey input size.
+	MaxPrivateKeyFileBytes = 16 << 10
+	// MaxSignatureFileBytes bounds .bisign input size.
+	MaxSignatureFileBytes = 16 << 10
+	// MaxRSAPrivateFileBytes bounds PEM and DER RSA private key input size.
+	MaxRSAPrivateFileBytes = 32 << 10
 )
 
 // Version is signature format versions supported by BI signing.

@@ -25,12 +25,16 @@ func LoadPublic(path string) (*PublicKeyFile, error) {
 		return nil, fmt.Errorf("stat public key file: %w", err)
 	}
 
+	if err := checkInputSize(stat.Size(), MaxPublicKeyFileBytes); err != nil {
+		return nil, err
+	}
+
 	return loadPublicFromReader(f, stat.Size())
 }
 
 // LoadPublicFromReader reads .bikey bytes from r.
 func LoadPublicFromReader(r io.Reader) (*PublicKeyFile, error) {
-	data, err := io.ReadAll(r)
+	data, err := readAllLimited(r, MaxPublicKeyFileBytes)
 	if err != nil {
 		return nil, fmt.Errorf("read public key data: %w", err)
 	}
@@ -40,6 +44,10 @@ func LoadPublicFromReader(r io.Reader) (*PublicKeyFile, error) {
 
 // ParsePublic parses a .bikey payload from memory.
 func ParsePublic(data []byte) (*PublicKeyFile, error) {
+	if err := checkInputSize(int64(len(data)), MaxPublicKeyFileBytes); err != nil {
+		return nil, err
+	}
+
 	return loadPublicFromReader(bytes.NewReader(data), int64(len(data)))
 }
 

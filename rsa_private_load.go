@@ -18,7 +18,13 @@ import (
 // LoadRSAPrivate loads RSA private keys from PEM or DER formats.
 // OpenSSH private keys are not supported. Encrypted legacy PEM requires passphrase.
 func LoadRSAPrivate(path string, passphrase string) (*rsa.PrivateKey, error) {
-	data, err := os.ReadFile(path)
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("read %s: %w", path, err)
+	}
+	defer func() { _ = f.Close() }()
+
+	data, err := readAllLimited(f, MaxRSAPrivateFileBytes)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", path, err)
 	}

@@ -19,6 +19,15 @@ func LoadSignature(path string) (*SignatureFile, error) {
 	}
 	defer func() { _ = f.Close() }()
 
+	stat, err := f.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("stat signature file: %w", err)
+	}
+
+	if err := checkInputSize(stat.Size(), MaxSignatureFileBytes); err != nil {
+		return nil, err
+	}
+
 	return loadSignatureFromReader(f)
 }
 
@@ -29,6 +38,10 @@ func LoadSignatureFromReader(r io.Reader) (*SignatureFile, error) {
 
 // ParseSignature parses a .bisign payload from memory.
 func ParseSignature(data []byte) (*SignatureFile, error) {
+	if err := checkInputSize(int64(len(data)), MaxSignatureFileBytes); err != nil {
+		return nil, err
+	}
+
 	return loadSignatureFromReader(bytes.NewReader(data))
 }
 
@@ -71,12 +84,34 @@ func loadSignatureFromReader(r io.Reader) (*SignatureFile, error) {
 		Block2:  block2,
 		Block3:  block3,
 	}
+	if err := ensureReaderEOF(r); err != nil {
+		return nil, err
+	}
 
 	if err := validateSignatureFile(sig); err != nil {
 		return nil, err
 	}
 
 	return sig, nil
+}
+
+// ensureReaderEOF rejects trailing bytes after a complete payload.
+func ensureReaderEOF(r io.Reader) error {
+	var extra [1]byte
+	n, err := io.ReadFull(r, extra[:])
+	if n != 0 {
+		return ErrTrailingData
+	}
+
+	if err == io.EOF {
+		return nil
+	}
+
+	if err != nil {
+		return fmt.Errorf("check trailing data: %w", err)
+	}
+
+	return nil
 }
 
 // readSigBlock reads a block only when its size matches the RSA key size.

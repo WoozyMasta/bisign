@@ -6,10 +6,33 @@ package bisign
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"math"
 	"math/big"
 )
+
+// readAllLimited reads at most maxBytes and returns ErrInputTooLarge if more data exists.
+func readAllLimited(r io.Reader, maxBytes int64) ([]byte, error) {
+	data, err := io.ReadAll(io.LimitReader(r, maxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, fmt.Errorf("%w: max=%d", ErrInputTooLarge, maxBytes)
+	}
+
+	return data, nil
+}
+
+// checkInputSize rejects files larger than their format limit.
+func checkInputSize(size, maxBytes int64) error {
+	if size > maxBytes {
+		return fmt.Errorf("%w: max=%d got=%d", ErrInputTooLarge, maxBytes, size)
+	}
+
+	return nil
+}
 
 // safeU32 converts int to uint32 for use in BI format fields; clamps to [0, math.MaxUint32].
 func safeU32(i int) uint32 {

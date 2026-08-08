@@ -14,6 +14,10 @@ var (
 	ErrInvalidKeyTag = errors.New("invalid key tag")
 	// ErrBlockSizeMismatch means the block size mismatch.
 	ErrBlockSizeMismatch = errors.New("block size mismatch")
+	// ErrInputTooLarge means input exceeds its format size limit.
+	ErrInputTooLarge = errors.New("input exceeds size limit")
+	// ErrTrailingData means bytes remain after a complete BI payload.
+	ErrTrailingData = errors.New("trailing data after BI payload")
 	// ErrInvalidPublicKey means the RSA public key data is invalid.
 	ErrInvalidPublicKey = errors.New("invalid RSA public key data")
 	// ErrInvalidPrivateKey means the RSA private key data is invalid.

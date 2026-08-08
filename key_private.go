@@ -27,13 +27,16 @@ func LoadPrivate(path string) (*PrivateKeyFile, error) {
 	if err != nil {
 		return nil, fmt.Errorf("stat private key file: %w", err)
 	}
+	if err := checkInputSize(stat.Size(), MaxPrivateKeyFileBytes); err != nil {
+		return nil, err
+	}
 
 	return loadPrivateFromReader(f, stat.Size())
 }
 
 // LoadPrivateFromReader reads .biprivatekey bytes from r.
 func LoadPrivateFromReader(r io.Reader) (*PrivateKeyFile, error) {
-	data, err := io.ReadAll(r)
+	data, err := readAllLimited(r, MaxPrivateKeyFileBytes)
 	if err != nil {
 		return nil, fmt.Errorf("read private key data: %w", err)
 	}
@@ -43,6 +46,10 @@ func LoadPrivateFromReader(r io.Reader) (*PrivateKeyFile, error) {
 
 // ParsePrivate parses a .biprivatekey payload from memory.
 func ParsePrivate(data []byte) (*PrivateKeyFile, error) {
+	if err := checkInputSize(int64(len(data)), MaxPrivateKeyFileBytes); err != nil {
+		return nil, err
+	}
+
 	return loadPrivateFromReader(bytes.NewReader(data), int64(len(data)))
 }
 
