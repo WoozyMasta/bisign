@@ -14,6 +14,8 @@ var (
 	ErrInvalidKeyTag = errors.New("invalid key tag")
 	// ErrBlockSizeMismatch means the block size mismatch.
 	ErrBlockSizeMismatch = errors.New("block size mismatch")
+	// ErrModulusSizeMismatch means modulus bit length differs from the key header.
+	ErrModulusSizeMismatch = errors.New("modulus size mismatch")
 	// ErrInputTooLarge means input exceeds its format size limit.
 	ErrInputTooLarge = errors.New("input exceeds size limit")
 	// ErrTrailingData means bytes remain after a complete BI payload.

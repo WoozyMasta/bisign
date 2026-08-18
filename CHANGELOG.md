@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning][].
 * Cap input sizes at 4 KiB for `.bikey`,
   16 KiB for `.biprivatekey` and `.bisign`,
   and 32 KiB for PEM/DER RSA private keys.
+* Reject BI keys when the modulus bit length does not match the header.
 * Lowered the minimum Go version to 1.22.
 
 ### Removed

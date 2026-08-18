@@ -85,6 +85,16 @@ func readKeyPublicDataFor(r io.Reader, baseErr error) (lengthBits uint32, expone
 		return 0, 0, nil, fmt.Errorf("read modulus: %w", err)
 	}
 
+	if n.BitLen() != int(lengthBits) {
+		return 0, 0, nil, fmt.Errorf(
+			"%w: %w: modulus bits=%d declared=%d",
+			baseErr,
+			ErrModulusSizeMismatch,
+			n.BitLen(),
+			lengthBits,
+		)
+	}
+
 	return lengthBits, exponent, n, nil
 }
 
