@@ -1,0 +1,29 @@
+{
+  "case_id": "dayz-keygen-reference",
+  "expected_behavior": "Generate a new test-only BI key pair",
+  "tool_name": "DSCreateKey.exe",
+  "exe_sha256": "81a100eeb190fab4492970d0e6f051db5c025bf8a4adc2815c57ed9fe3022067",
+  "tool_version": "unknown",
+  "argv": [
+    "BisignDayZReference"
+  ],
+  "exit_code": 0,
+  "stdout_bytes": 0,
+  "stderr_bytes": 0,
+  "outputs": [
+    {
+      "path": "BisignDayZReference.bikey",
+      "size": 172,
+      "sha256": "fb82ce93ff1bccc8d083b8b1d651af89b96639cbe148146c60d01faa1ace9283"
+    },
+    {
+      "path": "BisignDayZReference.biprivatekey",
+      "size": 620,
+      "sha256": "2f8b5487de6f00e8857f825cc96663084cc1d44739441e1440df9c8c18efa126"
+    }
+  ],
+  "classification": "ORIGINAL_EXECUTED",
+  "limitations": [
+    "Test-only key pair."
+  ]
+}

@@ -3,10 +3,15 @@ package bisign
 import (
 	"bytes"
 	"crypto/rsa"
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -636,19 +641,24 @@ func TestGeneratedBinaryRoundtripStability(t *testing.T) {
 func TestFixtureBinaryRoundtripStability(t *testing.T) {
 	t.Parallel()
 
-	privPath := "../pbo/pkg/bikey/test_data/dsutils.biprivatekey"
-	pubPath := "../pbo/pkg/bikey/test_data/dsutils.bikey"
-	sigPath := "../pbo/pkg/bikey/test_data/bin.pbo.dayz.bisign"
+	fixtureDir := filepath.Join("testdata", "canonical")
 
-	if _, err := os.Stat(privPath); err != nil {
-		t.Skipf("fixture not found: %s", privPath)
+	for _, key := range []struct {
+		game string
+		name string
+	}{
+		{game: "dayz", name: "BisignDayZReference"},
+		{game: "arma", name: "BisignArmaReference"},
+	} {
+		keyDir := filepath.Join(fixtureDir, key.game, "keys")
+		assertPrivateFixtureRoundtripStable(t, filepath.Join(keyDir, key.name+ExtBIPrivateKey))
+		assertPublicFixtureRoundtripStable(t, filepath.Join(keyDir, key.name+ExtBIKey))
 	}
 
-	assertPrivateFixtureRoundtripStable(t, privPath)
-	assertPublicFixtureRoundtripStable(t, pubPath)
-
-	if _, err := os.Stat(sigPath); err == nil {
-		assertSignatureFixtureRoundtripStable(t, sigPath)
+	for _, name := range []string{"dayz-v2", "dayz-v3", "arma-v2", "arma-v3"} {
+		game := strings.Split(name, "-")[0]
+		path := filepath.Join(fixtureDir, game, "signatures", name+ExtBISign)
+		assertSignatureFixtureRoundtripStable(t, path)
 	}
 }
 
@@ -722,45 +732,422 @@ func assertSignatureFixtureRoundtripStable(t *testing.T, fixturePath string) {
 	assertFileBytesEqual(t, fixturePath, out, "signature fixture roundtrip bytes")
 }
 
-// TestInteropPboFixture loads key/signature from pbo prototype test_data if present.
-func TestInteropPboFixture(t *testing.T) {
-	privPath := "../pbo/pkg/bikey/test_data/dsutils.biprivatekey"
-	pubPath := "../pbo/pkg/bikey/test_data/dsutils.bikey"
-	bisignPath := "../pbo/pkg/bikey/test_data/bin.pbo.dayz.bisign"
+// TestOriginalToolCorpusIntegrity verifies each asset against its manifest digest.
+func TestOriginalToolCorpusIntegrity(t *testing.T) {
+	t.Parallel()
 
-	if _, err := os.Stat(privPath); err != nil {
-		t.Skipf("fixture not found: %s", privPath)
+	var manifest struct {
+		Assets []struct {
+			Path   string `json:"path"`
+			Size   int64  `json:"size"`
+			SHA256 string `json:"sha256"`
+		} `json:"assets"`
 	}
 
-	priv, err := LoadPrivate(privPath)
+	fixtureDir := filepath.Join("testdata", "canonical")
+	manifestBytes, err := os.ReadFile(filepath.Join(fixtureDir, "manifest.json"))
 	if err != nil {
-		t.Fatalf("LoadPrivate fixture: %v", err)
+		t.Fatalf("read fixture manifest: %v", err)
+	}
+	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
+		t.Fatalf("decode fixture manifest: %v", err)
 	}
 
-	pub, err := LoadPublic(pubPath)
+	for _, asset := range manifest.Assets {
+		t.Run(asset.Path, func(t *testing.T) {
+			t.Parallel()
+
+			if filepath.IsAbs(asset.Path) || strings.Contains(asset.Path, ":") {
+				t.Fatalf("asset path must be relative: %q", asset.Path)
+			}
+
+			path := filepath.Join(fixtureDir, filepath.FromSlash(asset.Path))
+			relative, err := filepath.Rel(fixtureDir, path)
+			if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(os.PathSeparator)) {
+				t.Fatalf("asset path escapes corpus: %q", asset.Path)
+			}
+
+			data, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("read corpus asset %q: %v", asset.Path, err)
+			}
+			if int64(len(data)) != asset.Size {
+				t.Fatalf("asset %q size=%d, want %d", asset.Path, len(data), asset.Size)
+			}
+
+			digest := sha256.Sum256(data)
+			if got := hex.EncodeToString(digest[:]); got != asset.SHA256 {
+				t.Fatalf("asset %q SHA-256=%s, want %s", asset.Path, got, asset.SHA256)
+			}
+		})
+	}
+}
+
+// TestOriginalToolSignatureFixtures validates original signatures against independent hash vectors.
+func TestOriginalToolSignatureFixtures(t *testing.T) {
+	t.Parallel()
+
+	fixtureDir := filepath.Join("testdata", "canonical")
+	var manifest struct {
+		Keys map[string]struct {
+			Authority   string `json:"authority"`
+			RSABits     int    `json:"rsa_bits"`
+			RSAExponent int    `json:"rsa_exponent"`
+			PublicKey   struct {
+				Path string `json:"path"`
+			} `json:"public_key"`
+			PrivateKey struct {
+				Path string `json:"path"`
+			} `json:"private_key"`
+		} `json:"keys"`
+		Signatures map[string]struct {
+			GameType        string  `json:"game_type"`
+			Version         Version `json:"version"`
+			Path            string  `json:"path"`
+			ReferenceHashes struct {
+				Hash1 string `json:"hash1"`
+				Hash2 string `json:"hash2"`
+				Hash3 string `json:"hash3"`
+			} `json:"reference_hashes"`
+		} `json:"signatures"`
+	}
+	manifestBytes, err := os.ReadFile(filepath.Join(fixtureDir, "manifest.json"))
 	if err != nil {
-		t.Fatalf("LoadPublic fixture: %v", err)
+		t.Fatalf("read fixture manifest: %v", err)
+	}
+	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
+		t.Fatalf("decode fixture manifest: %v", err)
 	}
 
-	if priv.Name != pub.Name {
-		t.Errorf("name mismatch: priv=%q pub=%q", priv.Name, pub.Name)
+	privateKeys := make(map[string]*PrivateKeyFile, len(manifest.Keys))
+	publicKeys := make(map[string]*PublicKeyFile, len(manifest.Keys))
+	for game, key := range manifest.Keys {
+		private, err := LoadPrivate(
+			filepath.Join(fixtureDir, filepath.FromSlash(key.PrivateKey.Path)),
+		)
+		if err != nil {
+			t.Fatalf("LoadPrivate %s key: %v", game, err)
+		}
+
+		public, err := LoadPublic(
+			filepath.Join(fixtureDir, filepath.FromSlash(key.PublicKey.Path)),
+		)
+		if err != nil {
+			t.Fatalf("LoadPublic %s key: %v", game, err)
+		}
+
+		if private.Name != key.Authority || public.Name != key.Authority {
+			t.Fatalf(
+				"%s key authority mismatch: private=%q public=%q want=%q",
+				game, private.Name, public.Name, key.Authority,
+			)
+		}
+		if private.Key.N.Cmp(public.Key.N) != 0 || private.Key.E != public.Key.E {
+			t.Fatalf(
+				"%s public and private key material does not match",
+				game,
+			)
+		}
+		if private.Key.N.BitLen() != key.RSABits || private.Key.E != key.RSAExponent {
+			t.Fatalf(
+				"%s RSA metadata mismatch: bits=%d exponent=%d",
+				game, private.Key.N.BitLen(), private.Key.E,
+			)
+		}
+
+		privateKeys[game] = private
+		publicKeys[game] = public
 	}
 
-	if priv.Key.PublicKey.N.Cmp(pub.Key.N) != 0 {
-		t.Error("modulus mismatch between private and public fixture")
+	for _, name := range []string{"dayz-v2", "dayz-v3", "arma-v2", "arma-v3"} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			fixture, ok := manifest.Signatures[name]
+			if !ok {
+				t.Fatalf("signature %q missing from manifest", name)
+			}
+
+			bisignPath := filepath.Join(fixtureDir, filepath.FromSlash(fixture.Path))
+			sig, err := LoadSignature(bisignPath)
+			if err != nil {
+				t.Fatalf("LoadSignature: %v", err)
+			}
+			if sig.Version != fixture.Version {
+				t.Fatalf("signature version=%d, want %d", sig.Version, fixture.Version)
+			}
+
+			public := publicKeys[fixture.GameType]
+			if public == nil || sig.Public.Name != public.Name || sig.Public.Key.N.Cmp(public.Key.N) != 0 {
+				t.Fatal("embedded public identity does not match the game's BI key")
+			}
+
+			want := HashSet{
+				Hash1: mustDecodeReferenceHash(t, fixture.ReferenceHashes.Hash1),
+				Hash2: mustDecodeReferenceHash(t, fixture.ReferenceHashes.Hash2),
+				Hash3: mustDecodeReferenceHash(t, fixture.ReferenceHashes.Hash3),
+			}
+
+			originalBytes, err := os.ReadFile(bisignPath)
+			if err != nil {
+				t.Fatalf("read original signature: %v", err)
+			}
+			independent, err := decodeReferenceSignature(originalBytes)
+			if err != nil {
+				t.Fatalf("independent signature decoding: %v", err)
+			}
+			key := manifest.Keys[fixture.GameType]
+			if independent.Version != fixture.Version || independent.KeyName != key.Authority {
+				t.Fatal("independent decoder found unexpected signature metadata")
+			}
+			if independent.RSABits != key.RSABits || independent.RSAExponent != key.RSAExponent {
+				t.Fatal("independent decoder found unexpected RSA metadata")
+			}
+			if independent.Hashes != want {
+				t.Fatal("manifest hashes differ from independent signature decoding")
+			}
+
+			got, err := sig.RecoverHashes()
+			if err != nil {
+				t.Fatalf("RecoverHashes: %v", err)
+			}
+			if got != want {
+				t.Fatalf(
+					"recovered hashes=%x/%x/%x, want %x/%x/%x",
+					got.Hash1, got.Hash2, got.Hash3, want.Hash1, want.Hash2, want.Hash3,
+				)
+			}
+			if err := sig.VerifyHashes(want); err != nil {
+				t.Fatalf("VerifyHashes: %v", err)
+			}
+
+			recreated, err := privateKeys[fixture.GameType].SignHashes(fixture.Version, want)
+			if err != nil {
+				t.Fatalf("SignHashes: %v", err)
+			}
+			if !bytes.Equal(recreated.Block1, sig.Block1) ||
+				!bytes.Equal(recreated.Block2, sig.Block2) ||
+				!bytes.Equal(recreated.Block3, sig.Block3) {
+				t.Fatal("SignHashes output differs from original signature blocks")
+			}
+
+			recreatedBytes, err := MarshalSignature(recreated)
+			if err != nil {
+				t.Fatalf("MarshalSignature: %v", err)
+			}
+			if !bytes.Equal(recreatedBytes, originalBytes) {
+				t.Fatal("recreated signature differs byte-for-byte from original output")
+			}
+		})
+	}
+}
+
+// referenceSignature stores fields decoded without using the package's parser.
+type referenceSignature struct {
+	KeyName     string  // Embedded BI authority name.
+	Version     Version // Stored signature format version.
+	RSABits     int     // RSA modulus width in bits.
+	RSAExponent int     // RSA public exponent.
+	Hashes      HashSet // SHA-1 values recovered from the signature blocks.
+}
+
+// decodeReferenceSignature reads BI fields and recovers all three hashes independently.
+func decodeReferenceSignature(data []byte) (referenceSignature, error) {
+	var result referenceSignature
+
+	nameEnd := bytes.IndexByte(data, 0)
+	if nameEnd <= 0 {
+		return result, errors.New("missing BI key name")
 	}
 
-	if _, err := os.Stat(bisignPath); err != nil {
-		return
-	}
-
-	sig, err := LoadSignature(bisignPath)
+	result.KeyName = string(data[:nameEnd])
+	offset := nameEnd + 1
+	blockSize, err := readReferenceUint32(data, &offset)
 	if err != nil {
-		t.Fatalf("LoadSignature fixture: %v", err)
+		return result, err
+	}
+	if len(data)-offset < 12 {
+		return result, errors.New("truncated BI public key header")
 	}
 
-	_, err = sig.RecoverHashes()
-	if err != nil {
-		t.Errorf("RecoverHashes from fixture: %v", err)
+	offset += 8
+	if string(data[offset:offset+4]) != "RSA1" {
+		return result, errors.New("unexpected BI RSA key tag")
 	}
+
+	offset += 4
+	bits, err := readReferenceUint32(data, &offset)
+	if err != nil {
+		return result, err
+	}
+
+	exponent, err := readReferenceUint32(data, &offset)
+	if err != nil {
+		return result, err
+	}
+	if bits == 0 || bits%8 != 0 || exponent < 3 {
+		return result, errors.New("invalid RSA public key parameters")
+	}
+
+	keySize := int(bits / 8)
+	if blockSize != uint32(20+keySize) {
+		return result, errors.New("BI public key block size mismatch")
+	}
+
+	modulusLE, err := readReferenceBytes(data, &offset, keySize)
+	if err != nil {
+		return result, err
+	}
+
+	result.RSABits = int(bits)
+	result.RSAExponent = int(exponent)
+
+	block1, err := readReferenceSignatureBlock(data, &offset, keySize)
+	if err != nil {
+		return result, err
+	}
+
+	version, err := readReferenceUint32(data, &offset)
+	if err != nil {
+		return result, err
+	}
+
+	result.Version = Version(version)
+	block2, err := readReferenceSignatureBlock(data, &offset, keySize)
+	if err != nil {
+		return result, err
+	}
+
+	block3, err := readReferenceSignatureBlock(data, &offset, keySize)
+	if err != nil {
+		return result, err
+	}
+	if offset != len(data) {
+		return result, errors.New("unexpected bytes after signature blocks")
+	}
+
+	result.Hashes.Hash1, err = decodeReferenceSignatureBlock(block1, modulusLE, exponent)
+	if err != nil {
+		return result, err
+	}
+
+	result.Hashes.Hash2, err = decodeReferenceSignatureBlock(block2, modulusLE, exponent)
+	if err != nil {
+		return result, err
+	}
+
+	result.Hashes.Hash3, err = decodeReferenceSignatureBlock(block3, modulusLE, exponent)
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
+}
+
+// readReferenceSignatureBlock reads a fixed-width little-endian RSA block.
+func readReferenceSignatureBlock(data []byte, offset *int, keySize int) ([]byte, error) {
+	length, err := readReferenceUint32(data, offset)
+	if err != nil {
+		return nil, err
+	}
+	if int(length) != keySize {
+		return nil, errors.New("RSA signature block length mismatch")
+	}
+
+	return readReferenceBytes(data, offset, keySize)
+}
+
+// decodeReferenceSignatureBlock applies RSA public exponentiation and strict PKCS#1 v1.5 decoding.
+func decodeReferenceSignatureBlock(blockLE, modulusLE []byte, exponent uint32) ([20]byte, error) {
+	var digest [20]byte
+	blockBE := reverseReferenceBytes(blockLE)
+	modulusBE := reverseReferenceBytes(modulusLE)
+	signature := new(big.Int).SetBytes(blockBE)
+	modulus := new(big.Int).SetBytes(modulusBE)
+	if signature.Sign() <= 0 || signature.Cmp(modulus) >= 0 {
+		return digest, errors.New("RSA signature value is out of range")
+	}
+
+	encodedInt := new(big.Int).Exp(signature, new(big.Int).SetUint64(uint64(exponent)), modulus)
+	if len(encodedInt.Bytes()) > len(blockLE) {
+		return digest, errors.New("recovered RSA message exceeds modulus width")
+	}
+
+	encoded := make([]byte, len(blockLE))
+	encodedInt.FillBytes(encoded)
+	if len(encoded) < 2 || encoded[0] != 0 || encoded[1] != 1 {
+		return digest, errors.New("invalid PKCS#1 v1.5 block header")
+	}
+
+	separator := 2
+	for separator < len(encoded) && encoded[separator] == 0xff {
+		separator++
+	}
+	if separator-2 < 8 || separator >= len(encoded) || encoded[separator] != 0 {
+		return digest, errors.New("invalid PKCS#1 v1.5 padding")
+	}
+
+	separator++
+	prefix := []byte{
+		0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e,
+		0x03, 0x02, 0x1a, 0x05, 0x00, 0x04, 0x14,
+	}
+	if len(encoded)-separator != len(prefix)+len(digest) ||
+		!bytes.Equal(encoded[separator:separator+len(prefix)], prefix) {
+		return digest, errors.New("invalid SHA-1 DigestInfo")
+	}
+
+	copy(digest[:], encoded[separator+len(prefix):])
+	return digest, nil
+}
+
+// readReferenceUint32 reads one bounded little-endian uint32 from raw fixture bytes.
+func readReferenceUint32(data []byte, offset *int) (uint32, error) {
+	if *offset < 0 || len(data)-*offset < 4 {
+		return 0, errors.New("truncated uint32 field")
+	}
+
+	value := binary.LittleEndian.Uint32(data[*offset : *offset+4])
+	*offset += 4
+
+	return value, nil
+}
+
+// readReferenceBytes returns a copy of one bounded byte range.
+func readReferenceBytes(data []byte, offset *int, size int) ([]byte, error) {
+	if size < 0 || *offset < 0 || len(data)-*offset < size {
+		return nil, errors.New("truncated byte field")
+	}
+
+	result := append([]byte(nil), data[*offset:*offset+size]...)
+	*offset += size
+
+	return result, nil
+}
+
+// reverseReferenceBytes returns a copy of data in reverse order.
+func reverseReferenceBytes(data []byte) []byte {
+	result := make([]byte, len(data))
+	for index := range data {
+		result[len(data)-1-index] = data[index]
+	}
+
+	return result
+}
+
+// mustDecodeReferenceHash parses one 20-byte SHA-1 vector from the manifest.
+func mustDecodeReferenceHash(t *testing.T, value string) [20]byte {
+	t.Helper()
+
+	var result [20]byte
+	decoded, err := hex.DecodeString(value)
+	if err != nil {
+		t.Fatalf("decode hash vector %q: %v", value, err)
+	}
+	if len(decoded) != len(result) {
+		t.Fatalf("hash vector length=%d, want %d", len(decoded), len(result))
+	}
+
+	copy(result[:], decoded)
+	return result
 }

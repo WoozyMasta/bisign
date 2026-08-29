@@ -1,0 +1,29 @@
+{
+  "case_id": "arma-keygen-reference",
+  "expected_behavior": "Generate a new test-only BI key pair",
+  "tool_name": "DSCreateKey.exe",
+  "exe_sha256": "5c904787cb7140363c42b75c77cc9d985f37190ebca38ce5611a12991d35be1e",
+  "tool_version": "1.3.0.0",
+  "argv": [
+    "BisignArmaReference"
+  ],
+  "exit_code": 0,
+  "stdout_bytes": 0,
+  "stderr_bytes": 0,
+  "outputs": [
+    {
+      "path": "BisignArmaReference.bikey",
+      "size": 172,
+      "sha256": "2b5c82a990e9a32ec51b2cb6cf5a8c834f55bb6aa7a556db8ded4fe00f1e9fab"
+    },
+    {
+      "path": "BisignArmaReference.biprivatekey",
+      "size": 620,
+      "sha256": "8175bc3264d94e8b2a2b193cabc3a76f7b46b34351d9b0305983890e97919f56"
+    }
+  ],
+  "classification": "ORIGINAL_EXECUTED",
+  "limitations": [
+    "Test-only key pair."
+  ]
+}

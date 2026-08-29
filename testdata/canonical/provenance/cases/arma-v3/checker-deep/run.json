@@ -1,0 +1,17 @@
+{
+  "case_id": "arma-v3-checker-deep",
+  "expected_behavior": "Record the matching original checker outcome",
+  "tool_name": "DSCheckSignatures.exe",
+  "exe_sha256": "b50a5fdaf9fbdec49b3ca539eb173e8962678ae1def7fba1087eb5c0190180cf",
+  "tool_version": "1.3.0.1",
+  "argv": [
+    "-deep",
+    "<checked-dir>",
+    "<keys-dir>"
+  ],
+  "working_directory": ".",
+  "exit_code": 0,
+  "checker_outcome": "ACCEPTED",
+  "classification": "ORIGINAL_VERIFIED",
+  "diagnostic": "Arma checker exits 0 in deep mode."
+}

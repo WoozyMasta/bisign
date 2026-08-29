@@ -1,0 +1,2 @@
+Signature <corpus>\provenance\cases\dayz-v3\seed-source.pbo.BisignDayZReference.bisign is OK
+

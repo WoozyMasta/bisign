@@ -1,0 +1,28 @@
+{
+  "case_id": "arma-v2-checker",
+  "expected_behavior": "Original checker accepts the matching signed PBO",
+  "tool_name": "DSCheckSignatures.exe",
+  "exe_sha256": "b50a5fdaf9fbdec49b3ca539eb173e8962678ae1def7fba1087eb5c0190180cf",
+  "tool_version": "1.3.0.1",
+  "argv": [
+    "<checked-dir>",
+    "<keys-dir>"
+  ],
+  "working_directory": ".",
+  "input": [
+    {
+      "sha256": "a787ab94cd30fd95171d558f40d0a60a94b90401cb8bf4dc0df425943a8de3ef",
+      "path": "provenance/cases/arma-v2/seed-source.pbo"
+    },
+    {
+      "sha256": "2b5c82a990e9a32ec51b2cb6cf5a8c834f55bb6aa7a556db8ded4fe00f1e9fab",
+      "path": "arma/keys/BisignArmaReference.bikey"
+    }
+  ],
+  "exit_code": 1,
+  "stdout_bytes": 151,
+  "stderr_bytes": 0,
+  "checker_outcome": "REJECTED",
+  "classification": "UNVERIFIED",
+  "limitations": []
+}

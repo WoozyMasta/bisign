@@ -1,0 +1,381 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-11-20T18:19:14.9862305Z",
+  "source": {
+    "source_file": "seed-source/readme.txt",
+    "source_sha256": "047ad9f0efd85b8651b9e749855cef4b72bd1283412173666cc5d16d575bdf61",
+    "pbo_file": "seed/seed-source.pbo",
+    "pbo_size": 149,
+    "pbo_sha256": "a787ab94cd30fd95171d558f40d0a60a94b90401cb8bf4dc0df425943a8de3ef",
+    "generator": {
+      "tool_name": "FileBank.exe",
+      "exe_sha256": "f89aaeb22421b9158fbbf173f75d52b6f3de69986cb462e58956c78da82c4caf",
+      "tool_version": "unknown",
+      "exit_code": 0,
+      "classification": "ORIGINAL_EXECUTED"
+    },
+    "source_size": 35
+  },
+  "keys": {
+    "arma": {
+      "authority": "BisignArmaReference",
+      "rsa_bits": 1024,
+      "rsa_exponent": 65537,
+      "public_key": {
+        "path": "arma/keys/BisignArmaReference.bikey",
+        "size": 172,
+        "sha256": "2b5c82a990e9a32ec51b2cb6cf5a8c834f55bb6aa7a556db8ded4fe00f1e9fab"
+      },
+      "private_key": {
+        "path": "arma/keys/BisignArmaReference.biprivatekey",
+        "size": 620,
+        "sha256": "8175bc3264d94e8b2a2b193cabc3a76f7b46b34351d9b0305983890e97919f56"
+      },
+      "generator": {
+        "tool_name": "DSCreateKey.exe",
+        "exe_sha256": "5c904787cb7140363c42b75c77cc9d985f37190ebca38ce5611a12991d35be1e",
+        "tool_version": "1.3.0.0",
+        "exit_code": 0,
+        "classification": "ORIGINAL_EXECUTED"
+      }
+    },
+    "dayz": {
+      "authority": "BisignDayZReference",
+      "rsa_bits": 1024,
+      "rsa_exponent": 65537,
+      "public_key": {
+        "path": "dayz/keys/BisignDayZReference.bikey",
+        "size": 172,
+        "sha256": "fb82ce93ff1bccc8d083b8b1d651af89b96639cbe148146c60d01faa1ace9283"
+      },
+      "private_key": {
+        "path": "dayz/keys/BisignDayZReference.biprivatekey",
+        "size": 620,
+        "sha256": "2f8b5487de6f00e8857f825cc96663084cc1d44739441e1440df9c8c18efa126"
+      },
+      "generator": {
+        "tool_name": "DSCreateKey.exe",
+        "exe_sha256": "81a100eeb190fab4492970d0e6f051db5c025bf8a4adc2815c57ed9fe3022067",
+        "tool_version": "unknown",
+        "exit_code": 0,
+        "classification": "ORIGINAL_EXECUTED"
+      }
+    }
+  },
+  "signatures": {
+    "dayz-v2": {
+      "game_type": "dayz",
+      "version": 2,
+      "path": "dayz/signatures/dayz-v2.bisign",
+      "size": 572,
+      "sha256": "9875f6dfc4c99cbb267750492e6ebf4eed5b00d1dd918296a7a98e81ea5fea45",
+      "reference_hashes": {
+        "hash1": "d7d45a37544ee048ae063d62a1bef78890155124",
+        "hash2": "dd01c5682a7940f37fedbfc6d42e3b570a683fcb",
+        "hash3": "27159ae31b224c7c0c98b1b1c6494ca17566511e"
+      },
+      "signer": {
+        "tool_name": "DSSignFile.exe",
+        "exe_sha256": "098f28b46bfe40ad4cf5c60dd3e570e984fe74ae423090b6d3f2da8d7c4e1e78",
+        "tool_version": "unknown",
+        "exit_code": 0,
+        "classification": "ORIGINAL_EXECUTED"
+      },
+      "checkers": [
+        {
+          "tool_name": "DSCheckSignatures.exe",
+          "exe_sha256": "9bafbbbdce1e2792515039f99b7150ca1ce97adf16aab8cfc79bdc8938a8503c",
+          "tool_version": "unknown",
+          "exit_code": 0,
+          "outcome": "ACCEPTED",
+          "classification": "ORIGINAL_VERIFIED"
+        }
+      ],
+      "provenance": "provenance/cases/dayz-v2/run.json"
+    },
+    "arma-v3": {
+      "game_type": "arma",
+      "version": 3,
+      "path": "arma/signatures/arma-v3.bisign",
+      "size": 572,
+      "sha256": "7ca9d21dec2652837711c7b96bab62c94d01199d89306333c7d980a202f2d62d",
+      "reference_hashes": {
+        "hash1": "d7d45a37544ee048ae063d62a1bef78890155124",
+        "hash2": "dd01c5682a7940f37fedbfc6d42e3b570a683fcb",
+        "hash3": "66eb99b5b1d576d99adacee2f4c3181ae61eb84a"
+      },
+      "signer": {
+        "tool_name": "DSSignFile.exe",
+        "exe_sha256": "32ed300354db01aff112dba8e9f5363780b135482ae231409179554feeabf1de",
+        "tool_version": "1.3.0.1",
+        "exit_code": 0,
+        "classification": "ORIGINAL_EXECUTED"
+      },
+      "checkers": [
+        {
+          "tool_name": "DSCheckSignatures.exe",
+          "exe_sha256": "b50a5fdaf9fbdec49b3ca539eb173e8962678ae1def7fba1087eb5c0190180cf",
+          "tool_version": "1.3.0.1",
+          "exit_code": 0,
+          "outcome": "ACCEPTED",
+          "classification": "ORIGINAL_VERIFIED"
+        }
+      ],
+      "provenance": "provenance/cases/arma-v3/run.json"
+    },
+    "arma-v2": {
+      "game_type": "arma",
+      "version": 2,
+      "path": "arma/signatures/arma-v2.bisign",
+      "size": 572,
+      "sha256": "95e38c4efd53b832bc989521a25cb0fc0937700ae2c7b08d6c1700bf5c268136",
+      "reference_hashes": {
+        "hash1": "d7d45a37544ee048ae063d62a1bef78890155124",
+        "hash2": "dd01c5682a7940f37fedbfc6d42e3b570a683fcb",
+        "hash3": "27159ae31b224c7c0c98b1b1c6494ca17566511e"
+      },
+      "signer": {
+        "tool_name": "DSSignFile.exe",
+        "exe_sha256": "32ed300354db01aff112dba8e9f5363780b135482ae231409179554feeabf1de",
+        "tool_version": "1.3.0.1",
+        "exit_code": 0,
+        "classification": "ORIGINAL_EXECUTED"
+      },
+      "checkers": [
+        {
+          "tool_name": "DSCheckSignatures.exe",
+          "exe_sha256": "b50a5fdaf9fbdec49b3ca539eb173e8962678ae1def7fba1087eb5c0190180cf",
+          "tool_version": "1.3.0.1",
+          "exit_code": 1,
+          "outcome": "REJECTED",
+          "classification": "UNVERIFIED"
+        },
+        {
+          "tool_name": "DSCheckSignatures.exe",
+          "exe_sha256": "9bafbbbdce1e2792515039f99b7150ca1ce97adf16aab8cfc79bdc8938a8503c",
+          "tool_version": "unknown",
+          "exit_code": 0,
+          "outcome": "ACCEPTED",
+          "classification": "ORIGINAL_VERIFIED"
+        }
+      ],
+      "provenance": "provenance/cases/arma-v2/run.json"
+    },
+    "dayz-v3": {
+      "game_type": "dayz",
+      "version": 3,
+      "path": "dayz/signatures/dayz-v3.bisign",
+      "size": 572,
+      "sha256": "d59e91ea94a5271a6095e3e4c3400d278edd90371e77da9edb8705146f9f92f1",
+      "reference_hashes": {
+        "hash1": "d7d45a37544ee048ae063d62a1bef78890155124",
+        "hash2": "dd01c5682a7940f37fedbfc6d42e3b570a683fcb",
+        "hash3": "66eb99b5b1d576d99adacee2f4c3181ae61eb84a"
+      },
+      "signer": {
+        "tool_name": "DSSignFile.exe",
+        "exe_sha256": "098f28b46bfe40ad4cf5c60dd3e570e984fe74ae423090b6d3f2da8d7c4e1e78",
+        "tool_version": "unknown",
+        "exit_code": 0,
+        "classification": "ORIGINAL_EXECUTED"
+      },
+      "checkers": [
+        {
+          "tool_name": "DSCheckSignatures.exe",
+          "exe_sha256": "9bafbbbdce1e2792515039f99b7150ca1ce97adf16aab8cfc79bdc8938a8503c",
+          "tool_version": "unknown",
+          "exit_code": 0,
+          "outcome": "ACCEPTED",
+          "classification": "ORIGINAL_VERIFIED"
+        }
+      ],
+      "provenance": "provenance/cases/dayz-v3/run.json"
+    }
+  },
+  "reference_decoder": {
+    "source": "bisign_test.go",
+    "method": "Raw BI signature parser, math/big RSA public exponentiation, strict PKCS#1 v1.5 SHA-1 DigestInfo decoding."
+  },
+  "assets": [
+    {
+      "path": "README.md",
+      "size": 810,
+      "sha256": "1a41cb751b7f51310277b6ab7aa453342643b33aaf65ab875eb3c7a18f5d7766"
+    },
+    {
+      "path": "provenance/cases/arma-v3/checker/run.json",
+      "size": 849,
+      "sha256": "b963fea0524d0aee434e86b906877d7a1bebb6b1771f0e3b3c151ea09278d51d"
+    },
+    {
+      "path": "provenance/cases/arma-v3/checker-deep/run.json",
+      "size": 523,
+      "sha256": "897c1cf350a96d9e2c201b4f31ed0f9bd3738a92a23d69697516a1564c14a89b"
+    },
+    {
+      "path": "provenance/cases/dayz-v2/run.json",
+      "size": 1266,
+      "sha256": "1d8092e26e533a0458aa3e66570f8ec8745e03601df5899aa4fe8de8d750a435"
+    },
+    {
+      "path": "provenance/cases/dayz-v2/seed-source.pbo",
+      "size": 149,
+      "sha256": "a787ab94cd30fd95171d558f40d0a60a94b90401cb8bf4dc0df425943a8de3ef"
+    },
+    {
+      "path": "provenance/cases/dayz-v2/seed-source.pbo.BisignDayZReference.bisign",
+      "size": 572,
+      "sha256": "9875f6dfc4c99cbb267750492e6ebf4eed5b00d1dd918296a7a98e81ea5fea45"
+    },
+    {
+      "path": "provenance/cases/dayz-v2/checker/run.json",
+      "size": 851,
+      "sha256": "24f3f38f8a3e203fe00e17052453e7516760ca8e3d1966229de9783ae95698c5"
+    },
+    {
+      "path": "provenance/cases/arma-v3/seed-source.pbo.BisignArmaReference.bisign",
+      "size": 572,
+      "sha256": "7ca9d21dec2652837711c7b96bab62c94d01199d89306333c7d980a202f2d62d"
+    },
+    {
+      "path": "provenance/cases/dayz-v2/checker/stdout.txt",
+      "size": 208,
+      "sha256": "93082fe2850f5ceeba1665aba1a07902ffc1107645b22ae2f7ab47c2b3d91337"
+    },
+    {
+      "path": "provenance/cases/dayz-v3/seed-source.pbo",
+      "size": 149,
+      "sha256": "a787ab94cd30fd95171d558f40d0a60a94b90401cb8bf4dc0df425943a8de3ef"
+    },
+    {
+      "path": "provenance/cases/dayz-v3/seed-source.pbo.BisignDayZReference.bisign",
+      "size": 572,
+      "sha256": "d59e91ea94a5271a6095e3e4c3400d278edd90371e77da9edb8705146f9f92f1"
+    },
+    {
+      "path": "provenance/cases/dayz-v3/checker/run.json",
+      "size": 851,
+      "sha256": "21e4e6826d1c05728b9d6f327a4eac15e65f00d3506e0cd5a5ca36c2d5fc45b2"
+    },
+    {
+      "path": "provenance/cases/dayz-v3/checker/stdout.txt",
+      "size": 96,
+      "sha256": "8c8dbc3247628a32c9b6b603f79c46c61f60373ce2c7ca86cf60048617f01b09"
+    },
+    {
+      "path": "provenance/dayz-keygen/run.json",
+      "size": 816,
+      "sha256": "f592b0d5e318717400aedb50acb06ce157dfbae130727716585074138be2e3b8"
+    },
+    {
+      "path": "provenance/filebank-seed/run.json",
+      "size": 861,
+      "sha256": "09049ac85a092cf3facf723a045567314f73cfe2af24be14616775d05628e46a"
+    },
+    {
+      "path": "provenance/cases/dayz-v3/run.json",
+      "size": 1254,
+      "sha256": "84d738c0aeb5140e56e7406fd627bf0b76388a75c7ebf5f73319f6007c838a1c"
+    },
+    {
+      "path": "provenance/cases/arma-v3/seed-source.pbo",
+      "size": 149,
+      "sha256": "a787ab94cd30fd95171d558f40d0a60a94b90401cb8bf4dc0df425943a8de3ef"
+    },
+    {
+      "path": "provenance/cases/arma-v3/run.json",
+      "size": 1193,
+      "sha256": "4ddd8ba0c8e2bad2470bef53bda712aaa806b4f7d7353541c2f6656c99db104e"
+    },
+    {
+      "path": "provenance/cases/arma-v2/dayz-checker/run.json",
+      "size": 617,
+      "sha256": "0be149a2d1941045481d902ab1bff481d0b05c65d27bca269158ecaf95df42bc"
+    },
+    {
+      "path": "arma/keys/BisignArmaReference.bikey",
+      "size": 172,
+      "sha256": "2b5c82a990e9a32ec51b2cb6cf5a8c834f55bb6aa7a556db8ded4fe00f1e9fab"
+    },
+    {
+      "path": "arma/keys/BisignArmaReference.biprivatekey",
+      "size": 620,
+      "sha256": "8175bc3264d94e8b2a2b193cabc3a76f7b46b34351d9b0305983890e97919f56"
+    },
+    {
+      "path": "arma/signatures/arma-v2.bisign",
+      "size": 572,
+      "sha256": "95e38c4efd53b832bc989521a25cb0fc0937700ae2c7b08d6c1700bf5c268136"
+    },
+    {
+      "path": "arma/signatures/arma-v3.bisign",
+      "size": 572,
+      "sha256": "7ca9d21dec2652837711c7b96bab62c94d01199d89306333c7d980a202f2d62d"
+    },
+    {
+      "path": "dayz/keys/BisignDayZReference.bikey",
+      "size": 172,
+      "sha256": "fb82ce93ff1bccc8d083b8b1d651af89b96639cbe148146c60d01faa1ace9283"
+    },
+    {
+      "path": "dayz/keys/BisignDayZReference.biprivatekey",
+      "size": 620,
+      "sha256": "2f8b5487de6f00e8857f825cc96663084cc1d44739441e1440df9c8c18efa126"
+    },
+    {
+      "path": "dayz/signatures/dayz-v2.bisign",
+      "size": 572,
+      "sha256": "9875f6dfc4c99cbb267750492e6ebf4eed5b00d1dd918296a7a98e81ea5fea45"
+    },
+    {
+      "path": "dayz/signatures/dayz-v3.bisign",
+      "size": 572,
+      "sha256": "d59e91ea94a5271a6095e3e4c3400d278edd90371e77da9edb8705146f9f92f1"
+    },
+    {
+      "path": "provenance/arma-keygen/run.json",
+      "size": 816,
+      "sha256": "29c4e9d2a83aebf78949760204b3c1b09bb65ce9ddcdfe0aa28a410ca2a7ec85"
+    },
+    {
+      "path": "provenance/cases/arma-v2/run.json",
+      "size": 1205,
+      "sha256": "eb80d25ececd0056d2c8fa6c5b8add887bcc4f138870c37c2ac595ed86f9356f"
+    },
+    {
+      "path": "provenance/cases/arma-v2/seed-source.pbo",
+      "size": 149,
+      "sha256": "a787ab94cd30fd95171d558f40d0a60a94b90401cb8bf4dc0df425943a8de3ef"
+    },
+    {
+      "path": "provenance/cases/arma-v2/seed-source.pbo.BisignArmaReference.bisign",
+      "size": 572,
+      "sha256": "95e38c4efd53b832bc989521a25cb0fc0937700ae2c7b08d6c1700bf5c268136"
+    },
+    {
+      "path": "provenance/cases/arma-v2/checker/run.json",
+      "size": 844,
+      "sha256": "1c6a4a3f60217ea4cc94acafd4db62e62b567aed40f11ebb036d2e9ade44df75"
+    },
+    {
+      "path": "provenance/cases/arma-v2/checker/stdout.txt",
+      "size": 114,
+      "sha256": "9d9c813613b20ae39c2192daf39bf5909c43788729f7a9731afd5d8e965da4ff"
+    },
+    {
+      "path": "provenance/cases/arma-v2/checker-deep/run.json",
+      "size": 533,
+      "sha256": "cc8ab5cab6fd1c936c3bba432f90fcb4ef34d7ef2a36114b02f70bc62ff520b7"
+    },
+    {
+      "path": "seed/seed-source.pbo",
+      "size": 149,
+      "sha256": "a787ab94cd30fd95171d558f40d0a60a94b90401cb8bf4dc0df425943a8de3ef"
+    },
+    {
+      "path": "seed-source/readme.txt",
+      "size": 35,
+      "sha256": "047ad9f0efd85b8651b9e749855cef4b72bd1283412173666cc5d16d575bdf61"
+    }
+  ]
+}

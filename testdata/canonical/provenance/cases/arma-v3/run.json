@@ -1,0 +1,39 @@
+{
+  "case_id": "arma-v3",
+  "expected_behavior": "Create the requested BI signature version",
+  "tool_name": "DSSignFile.exe",
+  "exe_sha256": "32ed300354db01aff112dba8e9f5363780b135482ae231409179554feeabf1de",
+  "tool_version": "1.3.0.1",
+  "argv": [
+    "<private-key>",
+    "<input-pbo>"
+  ],
+  "working_directory": "provenance/cases/arma-v3",
+  "input": [
+    {
+      "path": "seed-source.pbo",
+      "sha256": "a787ab94cd30fd95171d558f40d0a60a94b90401cb8bf4dc0df425943a8de3ef"
+    },
+    {
+      "path": "arma/keys/BisignArmaReference.biprivatekey",
+      "sha256": "8175bc3264d94e8b2a2b193cabc3a76f7b46b34351d9b0305983890e97919f56"
+    }
+  ],
+  "exit_code": 0,
+  "stdout_bytes": 0,
+  "stderr_bytes": 0,
+  "outputs": [
+    {
+      "path": "provenance/cases/arma-v3/seed-source.pbo.BisignArmaReference.bisign",
+      "sha256": "7ca9d21dec2652837711c7b96bab62c94d01199d89306333c7d980a202f2d62d",
+      "size": 572
+    },
+    {
+      "path": "arma/signatures/arma-v3.bisign",
+      "sha256": "7ca9d21dec2652837711c7b96bab62c94d01199d89306333c7d980a202f2d62d",
+      "size": 572
+    }
+  ],
+  "classification": "ORIGINAL_EXECUTED",
+  "limitations": []
+}

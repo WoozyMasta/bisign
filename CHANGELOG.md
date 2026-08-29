@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning][].
 
 ## [Unreleased]
 
+### Added
+
+* Added original DayZ and Arma BI keys and V2/V3 signatures
+  as a reproducible corpus with independently decoded hash vectors.
+
 ### Changed
 
 * Bound memory use while parsing BI keys and signatures

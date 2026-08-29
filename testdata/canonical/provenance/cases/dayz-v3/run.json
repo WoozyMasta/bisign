@@ -1,0 +1,41 @@
+{
+  "case_id": "dayz-v3",
+  "expected_behavior": "Create the requested BI signature version",
+  "tool_name": "DSSignFile.exe",
+  "exe_sha256": "098f28b46bfe40ad4cf5c60dd3e570e984fe74ae423090b6d3f2da8d7c4e1e78",
+  "tool_version": "unknown",
+  "argv": [
+    "<private-key>",
+    "<input-pbo>"
+  ],
+  "working_directory": "provenance/cases/dayz-v3",
+  "input": [
+    {
+      "path": "seed-source.pbo",
+      "sha256": "a787ab94cd30fd95171d558f40d0a60a94b90401cb8bf4dc0df425943a8de3ef"
+    },
+    {
+      "path": "dayz/keys/BisignDayZReference.biprivatekey",
+      "sha256": "2f8b5487de6f00e8857f825cc96663084cc1d44739441e1440df9c8c18efa126"
+    }
+  ],
+  "exit_code": 0,
+  "stdout_bytes": 0,
+  "stderr_bytes": 0,
+  "outputs": [
+    {
+      "path": "provenance/cases/dayz-v3/seed-source.pbo.BisignDayZReference.bisign",
+      "sha256": "d59e91ea94a5271a6095e3e4c3400d278edd90371e77da9edb8705146f9f92f1",
+      "size": 572
+    },
+    {
+      "path": "dayz/signatures/dayz-v3.bisign",
+      "sha256": "d59e91ea94a5271a6095e3e4c3400d278edd90371e77da9edb8705146f9f92f1",
+      "size": 572
+    }
+  ],
+  "classification": "ORIGINAL_EXECUTED",
+  "limitations": [
+    "Absolute host paths are omitted from this record."
+  ]
+}

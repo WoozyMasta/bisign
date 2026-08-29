@@ -1,0 +1,28 @@
+{
+  "case_id": "dayz-v3-checker",
+  "expected_behavior": "Original checker accepts the matching signed PBO",
+  "tool_name": "DSCheckSignatures.exe",
+  "exe_sha256": "9bafbbbdce1e2792515039f99b7150ca1ce97adf16aab8cfc79bdc8938a8503c",
+  "tool_version": "unknown",
+  "argv": [
+    "<checked-dir>",
+    "<keys-dir>"
+  ],
+  "working_directory": ".",
+  "input": [
+    {
+      "sha256": "a787ab94cd30fd95171d558f40d0a60a94b90401cb8bf4dc0df425943a8de3ef",
+      "path": "provenance/cases/dayz-v3/seed-source.pbo"
+    },
+    {
+      "sha256": "fb82ce93ff1bccc8d083b8b1d651af89b96639cbe148146c60d01faa1ace9283",
+      "path": "dayz/keys/BisignDayZReference.bikey"
+    }
+  ],
+  "exit_code": 0,
+  "stdout_bytes": 133,
+  "stderr_bytes": 0,
+  "checker_outcome": "ACCEPTED",
+  "classification": "ORIGINAL_VERIFIED",
+  "limitations": []
+}

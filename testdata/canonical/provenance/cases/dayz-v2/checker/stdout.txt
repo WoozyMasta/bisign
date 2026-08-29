@@ -1,0 +1,3 @@
+Warning: Signature <corpus>\provenance\cases\dayz-v2\seed-source.pbo.BisignDayZReference.bisign is deprecated!
+Signature <corpus>\provenance\cases\dayz-v2\seed-source.pbo.BisignDayZReference.bisign is OK
+

@@ -1,0 +1,33 @@
+{
+  "case_id": "dayz-filebank-seed",
+  "expected_behavior": "Package the minimal source directory as a PBO",
+  "tool_name": "FileBank.exe",
+  "exe_sha256": "f89aaeb22421b9158fbbf173f75d52b6f3de69986cb462e58956c78da82c4caf",
+  "tool_version": "unknown",
+  "argv": [
+    "-dst",
+    "seed",
+    "seed-source"
+  ],
+  "working_directory": "corpus root",
+  "input": [
+    {
+      "sha256": "047ad9f0efd85b8651b9e749855cef4b72bd1283412173666cc5d16d575bdf61",
+      "path": "seed-source/readme.txt"
+    }
+  ],
+  "exit_code": 0,
+  "stdout_bytes": 0,
+  "stderr_bytes": 0,
+  "outputs": [
+    {
+      "sha256": "a787ab94cd30fd95171d558f40d0a60a94b90401cb8bf4dc0df425943a8de3ef",
+      "size": 149,
+      "path": "seed/seed-source.pbo"
+    }
+  ],
+  "classification": "ORIGINAL_EXECUTED",
+  "limitations": [
+    "DayZ FileBank build."
+  ]
+}
