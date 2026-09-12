@@ -133,7 +133,7 @@ func recoverDigestFromBlock(pub *rsa.PublicKey, block []byte) ([20]byte, error) 
 	reverseBytes(sigBE)
 
 	s := new(big.Int).SetBytes(sigBE)
-	if s.Sign() <= 0 {
+	if s.Sign() <= 0 || s.Cmp(pub.N) >= 0 {
 		return out, ErrInvalidSignatureInt
 	}
 
@@ -166,7 +166,7 @@ func allocKeyTempBuffer(keySize int, stack *[stackKeyBufferBytes]byte) []byte {
 
 // unpadPKCS1v15SHA1 extracts the 20-byte SHA1 digest from PKCS#1 v1.5 padded message.
 func unpadPKCS1v15SHA1(em []byte) ([]byte, bool) {
-	minLen := 2 + 1 + 1 + len(sha1ASNPrefix) + 20
+	minLen := 2 + 8 + 1 + 1 + len(sha1ASNPrefix) + 20
 	if len(em) < minLen {
 		return nil, false
 	}
@@ -175,17 +175,18 @@ func unpadPKCS1v15SHA1(em []byte) ([]byte, bool) {
 		return nil, false
 	}
 
-	i := 2
+	paddingStart := 2
+	i := paddingStart
 	for i < len(em) && em[i] == 0xff {
 		i++
 	}
 
-	if i >= len(em) || em[i] != 0x00 {
+	if i-paddingStart < 8 || i >= len(em) || em[i] != 0x00 {
 		return nil, false
 	}
 	i++
 
-	if i+len(sha1ASNPrefix)+20 > len(em) {
+	if i+len(sha1ASNPrefix)+20 != len(em) {
 		return nil, false
 	}
 

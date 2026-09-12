@@ -2,12 +2,14 @@ package bisign
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -366,6 +368,312 @@ func TestVerifyHashesMismatch(t *testing.T) {
 	if !errors.Is(err, ErrVerifyFailed) {
 		t.Errorf("want ErrVerifyFailed, got %v", err)
 	}
+}
+
+func TestStrictPKCS1v15VerificationForSupportedKeySizes(t *testing.T) {
+	for _, bits := range []int{512, 1024, 2048} {
+		t.Run(fmt.Sprintf("%d-bit", bits), func(t *testing.T) {
+			priv, err := Generate("verification", bits)
+			if err != nil {
+				t.Fatalf("Generate: %v", err)
+			}
+
+			var hashes HashSet
+			for index := range hashes.Hash1 {
+				hashes.Hash1[index] = byte(index)
+				hashes.Hash2[index] = byte(index + 1)
+				hashes.Hash3[index] = byte(index + 2)
+			}
+
+			sig, err := priv.SignHashes(Version(3), hashes)
+			if err != nil {
+				t.Fatalf("SignHashes: %v", err)
+			}
+			if got, want := len(sig.Block1), priv.Key.Size(); got != want {
+				t.Fatalf("signature block size=%d, want %d", got, want)
+			}
+
+			recovered, err := sig.RecoverHashes()
+			if err != nil {
+				t.Fatalf("RecoverHashes: %v", err)
+			}
+			if recovered != hashes {
+				t.Fatalf(
+					"recovered hashes=%x/%x/%x, want %x/%x/%x",
+					recovered.Hash1, recovered.Hash2, recovered.Hash3, hashes.Hash1, hashes.Hash2, hashes.Hash3,
+				)
+			}
+			if err := sig.VerifyHashes(hashes); err != nil {
+				t.Fatalf("VerifyHashes: %v", err)
+			}
+
+			if bits >= 1024 {
+				signatureBE := reverseReferenceBytes(sig.Block1)
+				if err := rsa.VerifyPKCS1v15(
+					&priv.Key.PublicKey, crypto.SHA1, hashes.Hash1[:], signatureBE,
+				); err != nil {
+					t.Fatalf("crypto/rsa VerifyPKCS1v15: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestSmallKeyRejectsMalformedPKCS1v15Blocks(t *testing.T) {
+	priv, err := Generate("negative-verification", 512)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	var hashes HashSet
+	hashes.Hash1[0] = 0x12
+	hashes.Hash2[0] = 0x34
+	hashes.Hash3[0] = 0x56
+	valid, err := priv.SignHashes(Version(3), hashes)
+	if err != nil {
+		t.Fatalf("SignHashes: %v", err)
+	}
+
+	keySize := priv.Key.Size()
+	prefix := append([]byte(nil), sha1ASNPrefix...)
+	makeMessage := func(paddingSize int, digestInfo []byte, tail []byte) []byte {
+		t.Helper()
+		message := make([]byte, keySize)
+		message[0] = 0
+		message[1] = 1
+		for index := 2; index < 2+paddingSize; index++ {
+			message[index] = 0xff
+		}
+		separator := 2 + paddingSize
+		message[separator] = 0
+		copy(message[separator+1:], digestInfo)
+		copy(message[separator+1+len(digestInfo):], tail)
+
+		return message
+	}
+
+	makeDigestInfo := func(asnPrefix []byte, digest []byte) []byte {
+		result := append([]byte(nil), asnPrefix...)
+		return append(result, digest...)
+	}
+
+	paddingSize := keySize - 3 - len(prefix) - len(hashes.Hash1)
+	shortPaddingTail := make([]byte, keySize-3-7-len(prefix)-len(hashes.Hash1))
+	wrongPrefix := append([]byte(nil), prefix...)
+	wrongPrefix[0] ^= 0x01
+	withLeadingGarbage := makeMessage(paddingSize, makeDigestInfo(prefix, hashes.Hash1[:]), nil)
+	withLeadingGarbage[0] = 0x7f
+
+	noSeparator := make([]byte, keySize)
+	noSeparator[0] = 0
+	noSeparator[1] = 1
+	for index := 2; index < len(noSeparator); index++ {
+		noSeparator[index] = 0xff
+	}
+
+	testCases := []struct {
+		name         string
+		block        []byte
+		verifyError  error
+		recoverError error
+	}{
+		{
+			name: "short FF padding",
+			block: signRawTestMessage(
+				t, priv.Key,
+				makeMessage(7, makeDigestInfo(prefix, hashes.Hash1[:]), shortPaddingTail),
+			),
+			verifyError:  ErrVerifyFailed,
+			recoverError: ErrPKCS1v15Unpad,
+		},
+		{
+			name:         "missing separator",
+			block:        signRawTestMessage(t, priv.Key, noSeparator),
+			verifyError:  ErrVerifyFailed,
+			recoverError: ErrPKCS1v15Unpad,
+		},
+		{
+			name: "invalid SHA1 prefix",
+			block: signRawTestMessage(
+				t, priv.Key,
+				makeMessage(paddingSize, makeDigestInfo(wrongPrefix, hashes.Hash1[:]), nil),
+			),
+			verifyError:  ErrVerifyFailed,
+			recoverError: ErrPKCS1v15Unpad,
+		},
+		{
+			name: "trailing data after digest",
+			block: signRawTestMessage(
+				t, priv.Key,
+				makeMessage(paddingSize-1, makeDigestInfo(prefix, hashes.Hash1[:]), []byte{0x42}),
+			),
+			verifyError:  ErrVerifyFailed,
+			recoverError: ErrPKCS1v15Unpad,
+		},
+		{
+			block:        signRawTestMessage(t, priv.Key, withLeadingGarbage),
+			verifyError:  ErrVerifyFailed,
+			recoverError: ErrPKCS1v15Unpad,
+		},
+		{
+			name:         "zero signature integer",
+			block:        make([]byte, keySize),
+			verifyError:  ErrVerifyFailed,
+			recoverError: ErrInvalidSignatureInt,
+		},
+		{
+			name:         "signature integer equals modulus",
+			block:        bigIntToReferenceLE(priv.Key.N, keySize),
+			verifyError:  ErrVerifyFailed,
+			recoverError: ErrInvalidSignatureInt,
+		},
+		{
+			name:         "signature integer exceeds modulus",
+			block:        bigIntToReferenceLE(new(big.Int).Add(priv.Key.N, big.NewInt(1)), keySize),
+			verifyError:  ErrVerifyFailed,
+			recoverError: ErrInvalidSignatureInt,
+		},
+		{
+			name:         "short signature block",
+			block:        valid.Block1[:keySize-1],
+			verifyError:  ErrSignatureSize,
+			recoverError: ErrSignatureSize,
+		},
+		{
+			name:         "long signature block",
+			block:        append(append([]byte(nil), valid.Block1...), 0),
+			verifyError:  ErrSignatureSize,
+			recoverError: ErrSignatureSize,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			candidate := *valid
+			candidate.Block1 = testCase.block
+
+			verifyErr := candidate.VerifyHashes(hashes)
+			if !errors.Is(verifyErr, testCase.verifyError) {
+				t.Fatalf("VerifyHashes error=%v, want errors.Is(_, %v)", verifyErr, testCase.verifyError)
+			}
+
+			_, recoverErr := candidate.RecoverHashes()
+			if !errors.Is(recoverErr, testCase.recoverError) {
+				t.Fatalf("RecoverHashes error=%v, want errors.Is(_, %v)", recoverErr, testCase.recoverError)
+			}
+		})
+	}
+}
+
+func TestVerifyHashesDigestMismatch(t *testing.T) {
+	priv, err := Generate("digest-mismatch", 512)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	var hashes HashSet
+	hashes.Hash1[0] = 0x10
+	sig, err := priv.SignHashes(Version(3), hashes)
+	if err != nil {
+		t.Fatalf("SignHashes: %v", err)
+	}
+
+	wrong := hashes
+	wrong.Hash1[0]++
+	if err := sig.VerifyHashes(wrong); !errors.Is(err, ErrVerifyFailed) {
+		t.Fatalf("VerifyHashes error=%v, want ErrVerifyFailed", err)
+	}
+
+	recovered, err := sig.RecoverHashes()
+	if err != nil {
+		t.Fatalf("RecoverHashes: %v", err)
+	}
+	if recovered != hashes {
+		t.Fatal("RecoverHashes did not return the embedded digest set")
+	}
+}
+
+func TestValidateRSAPublicForOpParameterEdges(t *testing.T) {
+	validModulus := new(big.Int).Lsh(big.NewInt(1), 511)
+	validModulus.Add(validModulus, big.NewInt(1))
+
+	testCases := []struct {
+		name string
+		key  *rsa.PublicKey
+		want error
+	}{
+		{
+			name: "nil key",
+			key:  nil,
+			want: ErrPublicOpNilPublicKey},
+		{
+			name: "nil modulus",
+			key:  &rsa.PublicKey{E: 65537},
+			want: ErrInvalidPublicKey,
+		},
+		{
+			name: "zero modulus",
+			key:  &rsa.PublicKey{N: big.NewInt(0), E: 65537},
+			want: ErrInvalidPublicKey,
+		},
+		{
+			name: "exponent zero",
+			key:  &rsa.PublicKey{N: validModulus, E: 0},
+			want: ErrInvalidPublicKey,
+		},
+		{
+			name: "exponent one",
+			key:  &rsa.PublicKey{N: validModulus, E: 1},
+			want: ErrInvalidPublicKey,
+		},
+		{
+			name: "negative exponent",
+			key:  &rsa.PublicKey{N: validModulus, E: -1},
+			want: ErrInvalidPublicKey,
+		},
+		{
+			name: "modulus below BI minimum",
+			key:  &rsa.PublicKey{N: new(big.Int).Lsh(big.NewInt(1), 510), E: 65537},
+			want: ErrInvalidPublicKey,
+		},
+		{
+			name: "modulus above parser limit",
+			key:  &rsa.PublicKey{N: new(big.Int).Lsh(big.NewInt(1), MaxKeyBits), E: 65537},
+			want: ErrInvalidPublicKey,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if err := validateRSAPublicForOp(testCase.key); !errors.Is(err, testCase.want) {
+				t.Fatalf("validateRSAPublicForOp error=%v, want errors.Is(_, %v)", err, testCase.want)
+			}
+		})
+	}
+}
+
+// signRawTestMessage creates malformed RSA test vectors with a private test key.
+func signRawTestMessage(t *testing.T, key *rsa.PrivateKey, encoded []byte) []byte {
+	t.Helper()
+
+	if len(encoded) != key.Size() {
+		t.Fatalf("raw message length=%d, want %d", len(encoded), key.Size())
+	}
+	representative := new(big.Int).SetBytes(encoded)
+	if representative.Cmp(key.N) >= 0 {
+		t.Fatal("raw message is outside the RSA modulus")
+	}
+
+	signature := new(big.Int).Exp(representative, key.D, key.N)
+	return bigIntToReferenceLE(signature, key.Size())
+}
+
+// bigIntToReferenceLE encodes an integer as a fixed-width BI little-endian block.
+func bigIntToReferenceLE(value *big.Int, size int) []byte {
+	encodedBE := make([]byte, size)
+	value.FillBytes(encodedBE)
+
+	return reverseReferenceBytes(encodedBE)
 }
 
 func TestWritePrivateInvalidKeyReturnsError(t *testing.T) {
