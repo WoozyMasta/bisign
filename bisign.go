@@ -63,7 +63,7 @@ func loadSignatureFromReader(r io.Reader) (*SignatureFile, error) {
 	}
 
 	version := Version(versionRaw)
-	if err := validateVersion(version); err != nil {
+	if err := validateSignatureVersion(version); err != nil {
 		return nil, err
 	}
 
@@ -216,7 +216,7 @@ func (k *PrivateKeyFile) SignHashes(version Version, hs HashSet) (*SignatureFile
 		return nil, err
 	}
 
-	if err := validateVersion(version); err != nil {
+	if err := validateSigningVersion(version); err != nil {
 		return nil, err
 	}
 
@@ -288,7 +288,7 @@ func (s *SignatureFile) RecoverHashes() (HashSet, error) {
 	return hs, nil
 }
 
-// VerifyHashes checks that the signature blocks match the provided hash set.
+// VerifyHashes verifies the hash and signature block selected by the signature version.
 func (s *SignatureFile) VerifyHashes(hs HashSet) error {
 	if s == nil || s.Public == nil || s.Public.Key == nil {
 		return ErrMissingEmbeddedPubKey
@@ -298,15 +298,20 @@ func (s *SignatureFile) VerifyHashes(hs HashSet) error {
 		return err
 	}
 
-	if err := verifyHashBlock(s.Public.Key, s.Block1, hs.Hash1[:]); err != nil {
+	if err := validateSignatureVersion(s.Version); err != nil {
 		return err
-	}
-	if err := verifyHashBlock(s.Public.Key, s.Block2, hs.Hash2[:]); err != nil {
-		return err
-	}
-	if err := verifyHashBlock(s.Public.Key, s.Block3, hs.Hash3[:]); err != nil {
-		return ErrVerifyFailed
 	}
 
-	return nil
+	switch s.Version {
+	case Version1:
+		return verifyHashBlock(s.Public.Key, s.Block1, hs.Hash1[:])
+
+	case Version2:
+		return verifyHashBlock(s.Public.Key, s.Block2, hs.Hash2[:])
+
+	case Version3:
+		return verifyHashBlock(s.Public.Key, s.Block3, hs.Hash3[:])
+	}
+
+	return ErrUnsupportedVersion
 }

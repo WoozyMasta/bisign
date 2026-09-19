@@ -9,8 +9,17 @@ import (
 	"fmt"
 )
 
-// validateVersion checks whether v is one of the supported signature versions.
-func validateVersion(v Version) error {
+// validateSignatureVersion checks whether v is supported by the BI file format.
+func validateSignatureVersion(v Version) error {
+	if v != Version1 && v != Version2 && v != Version3 {
+		return fmt.Errorf("%w: %d (allowed 1, 2, 3)", ErrUnsupportedVersion, v)
+	}
+
+	return nil
+}
+
+// validateSigningVersion limits newly generated signatures to versions emitted by BI signers.
+func validateSigningVersion(v Version) error {
 	if v != Version2 && v != Version3 {
 		return fmt.Errorf("%w: %d (allowed 2, 3)", ErrUnsupportedVersion, v)
 	}
@@ -186,7 +195,7 @@ func validateSignatureFile(s *SignatureFile) error {
 		return err
 	}
 
-	if err := validateVersion(s.Version); err != nil {
+	if err := validateSignatureVersion(s.Version); err != nil {
 		return err
 	}
 

@@ -79,7 +79,9 @@ _ = info
 
 ## Key behavior notes
 
-* Supported signature versions: `2` and `3`.
+* Reads and writes signature versions `1`, `2`, and `3`.
+* Signs versions `2` and `3`;
+  verification checks the block selected by the signature version.
 * Generate accepts power-of-two key sizes, starting at `512`.
 * Signature blocks in `.bisign` are stored in little-endian byte order.
 * Output files are written with `0600` permissions.

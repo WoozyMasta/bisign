@@ -41,8 +41,10 @@ Inspect metadata from one supported file type:
 	info, err := bisign.Inspect("identity.bikey")
 	_ = info
 
-Only bisign versions 2 and 3 are supported. Signing uses PKCS#1 v1.5 with
-SHA-1. Generate accepts power-of-two key sizes starting at 512 bits. BI files
-can be loaded/saved via paths, readers/writers, or in-memory bytes.
+Signature files in versions 1, 2, and 3 can be loaded and saved.
+Verification checks only the hash block selected by the version;
+signing supports versions 2 and 3. Signing uses PKCS#1 v1.5 with SHA-1.
+Generate accepts power-of-two key sizes starting at 512 bits.
+BI files can be loaded/saved via paths, readers/writers, or in-memory bytes.
 */
 package bisign

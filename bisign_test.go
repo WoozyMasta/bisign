@@ -328,7 +328,7 @@ func TestSignHashesInvalidVersion(t *testing.T) {
 	priv, _ := Generate("x", 1024)
 	var hs HashSet
 
-	_, err := priv.SignHashes(1, hs)
+	_, err := priv.SignHashes(Version1, hs)
 	if err == nil {
 		t.Fatal("expected error for version 1")
 	}
@@ -358,7 +358,7 @@ func TestVerifyHashesMismatch(t *testing.T) {
 	sig, _ := priv.SignHashes(3, hs)
 
 	var other HashSet
-	other.Hash1[0] = 0xff
+	other.Hash3[0] = 0xff
 
 	err := sig.VerifyHashes(other)
 	if err == nil {
@@ -550,6 +550,7 @@ func TestSmallKeyRejectsMalformedPKCS1v15Blocks(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			candidate := *valid
+			candidate.Version = Version1
 			candidate.Block1 = testCase.block
 
 			verifyErr := candidate.VerifyHashes(hashes)
@@ -579,7 +580,7 @@ func TestVerifyHashesDigestMismatch(t *testing.T) {
 	}
 
 	wrong := hashes
-	wrong.Hash1[0]++
+	wrong.Hash3[0]++
 	if err := sig.VerifyHashes(wrong); !errors.Is(err, ErrVerifyFailed) {
 		t.Fatalf("VerifyHashes error=%v, want ErrVerifyFailed", err)
 	}
@@ -832,7 +833,7 @@ func TestWriteSignatureRejectsUnsupportedVersion(t *testing.T) {
 	}
 }
 
-func TestLoadSignatureRejectsUnsupportedVersion(t *testing.T) {
+func TestV1SignatureRoundtripAndUnsupportedVersions(t *testing.T) {
 	t.Parallel()
 
 	priv, err := Generate("sig-load-version", 1024)
@@ -861,15 +862,107 @@ func TestLoadSignatureRejectsUnsupportedVersion(t *testing.T) {
 		t.Fatalf("invalid version offset: %d len=%d", versionOffset, len(data))
 	}
 
-	binary.LittleEndian.PutUint32(data[versionOffset:versionOffset+4], 1)
-	path := filepath.Join(t.TempDir(), "unsupported-version.bisign")
-	if err := os.WriteFile(path, data, 0o600); err != nil {
-		t.Fatalf("WriteFile: %v", err)
+	// The V1 fixture is synthetic: the signer creates V2/V3,
+	// so only the version field is changed while the three-block layout stays intact.
+	binary.LittleEndian.PutUint32(data[versionOffset:versionOffset+4], uint32(Version1))
+	loaded, err := ParseSignature(data)
+	if err != nil {
+		t.Fatalf("ParseSignature V1: %v", err)
+	}
+	if loaded.Version != Version1 {
+		t.Fatalf("version=%d, want %d", loaded.Version, Version1)
+	}
+	if got, want := len(loaded.Block1), sig.Public.Key.Size(); got != want {
+		t.Fatalf("Block1 size=%d, want %d", got, want)
+	}
+	if got, want := len(loaded.Block2), sig.Public.Key.Size(); got != want {
+		t.Fatalf("Block2 size=%d, want %d", got, want)
+	}
+	if got, want := len(loaded.Block3), sig.Public.Key.Size(); got != want {
+		t.Fatalf("Block3 size=%d, want %d", got, want)
 	}
 
-	_, err = LoadSignature(path)
-	if err == nil || !errors.Is(err, ErrUnsupportedVersion) {
-		t.Fatalf("expected ErrUnsupportedVersion, got: %v", err)
+	encoded, err := MarshalSignature(loaded)
+	if err != nil {
+		t.Fatalf("MarshalSignature V1: %v", err)
+	}
+	if !bytes.Equal(encoded, data) {
+		t.Fatal("V1 signature changed during parse/marshal roundtrip")
+	}
+	if err := loaded.VerifyHashes(HashSet{}); err != nil {
+		t.Fatalf("VerifyHashes V1: %v", err)
+	}
+
+	for _, invalidVersion := range []uint32{0, 4, ^uint32(0)} {
+		invalid := append([]byte(nil), data...)
+		binary.LittleEndian.PutUint32(invalid[versionOffset:versionOffset+4], invalidVersion)
+
+		if _, err := ParseSignature(invalid); !errors.Is(err, ErrUnsupportedVersion) {
+			t.Errorf("ParseSignature version %d error=%v, want ErrUnsupportedVersion", invalidVersion, err)
+		}
+	}
+}
+
+func TestVerifyHashesUsesVersionSelectedBlock(t *testing.T) {
+	priv, err := Generate("version-selection", 1024)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	var hashes HashSet
+	for index := range hashes.Hash1 {
+		hashes.Hash1[index] = byte(index)
+		hashes.Hash2[index] = byte(index + 1)
+		hashes.Hash3[index] = byte(index + 2)
+	}
+
+	for _, version := range []Version{Version1, Version2, Version3} {
+		t.Run(fmt.Sprintf("version %d", version), func(t *testing.T) {
+			signVersion := version
+			if signVersion == Version1 {
+				// The BI signer does not emit V1, so use its V2 blocks for this synthetic case.
+				signVersion = Version2
+			}
+			sig, err := priv.SignHashes(signVersion, hashes)
+			if err != nil {
+				t.Fatalf("SignHashes: %v", err)
+			}
+			sig.Version = version
+
+			invalidBlock := make([]byte, priv.Key.Size())
+			if version != Version1 {
+				sig.Block1 = invalidBlock
+			}
+			if version != Version2 {
+				sig.Block2 = invalidBlock
+			}
+			if version != Version3 {
+				sig.Block3 = invalidBlock
+			}
+
+			if err := sig.VerifyHashes(hashes); err != nil {
+				t.Fatalf("VerifyHashes with invalid unselected blocks: %v", err)
+			}
+			if _, err := sig.RecoverHashes(); err == nil {
+				t.Fatal("RecoverHashes accepted an invalid signature block")
+			}
+
+			invalidSelectedBlock := *sig
+			invalidSelectedBlock.Block1 = append([]byte(nil), sig.Block1...)
+			invalidSelectedBlock.Block2 = append([]byte(nil), sig.Block2...)
+			invalidSelectedBlock.Block3 = append([]byte(nil), sig.Block3...)
+			switch version {
+			case Version1:
+				invalidSelectedBlock.Block1[0] ^= 0xff
+			case Version2:
+				invalidSelectedBlock.Block2[0] ^= 0xff
+			case Version3:
+				invalidSelectedBlock.Block3[0] ^= 0xff
+			}
+			if err := invalidSelectedBlock.VerifyHashes(hashes); !errors.Is(err, ErrVerifyFailed) {
+				t.Fatalf("VerifyHashes error=%v, want ErrVerifyFailed", err)
+			}
+		})
 	}
 }
 

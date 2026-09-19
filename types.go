@@ -36,11 +36,13 @@ const (
 	MaxRSAPrivateFileBytes = 32 << 10
 )
 
-// Version is signature format versions supported by BI signing.
+// Version is a signature format version supported by BI files.
 type Version uint32
 
 // Supported BI signature versions.
 const (
+	// Version1 is the earliest BI signature format version.
+	Version1 Version = 1
 	// Version2 is the legacy version of BI signature format.
 	Version2 Version = 2
 	// Version3 is the current version of BI signature format.
@@ -102,7 +104,7 @@ type SignatureFile struct {
 	// Third Raw signature block, LE
 	Block3 []byte `json:"block3,omitempty" yaml:"block3,omitempty"`
 
-	// Signature format version (2 or 3)
+	// Signature format version (1, 2, or 3)
 	Version Version `json:"version" yaml:"version"`
 }
 
@@ -172,7 +174,7 @@ type SignatureInfo struct {
 	// Recovery error text when hashes are unavailable
 	RecoverError string `json:"recover_error,omitempty" yaml:"recover_error,omitempty"`
 
-	// Signature format version (2 or 3)
+	// Signature format version (1, 2, or 3)
 	Version Version `json:"version" yaml:"version"`
 }
 

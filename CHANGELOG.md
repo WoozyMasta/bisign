@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning][].
 
 ### Changed
 
+* Verify only the signature block selected by the version; support reading V1.
 * Enforce strict PKCS#1 v1.5 SHA-1 padding and RSA signature integer ranges.
 * Bound memory use while parsing BI keys and signatures
   by validating declared lengths before allocation
