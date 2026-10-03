@@ -10,9 +10,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -713,6 +715,124 @@ func TestWritePublicInvalidKeyReturnsError(t *testing.T) {
 	}
 }
 
+func TestPublicParserRejectsInvalidExponents(t *testing.T) {
+	priv, err := Generate("invalid-exponent", 1024)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	data, err := MarshalPublic(priv.Public())
+	if err != nil {
+		t.Fatalf("MarshalPublic: %v", err)
+	}
+
+	nameEnd := bytes.IndexByte(data, 0)
+	if nameEnd < 0 {
+		t.Fatal("serialized public key has no name terminator")
+	}
+
+	exponentOffset := nameEnd + 1 + 4 + 12 + 4
+	for _, exponent := range []uint32{0, 1} {
+		invalid := append([]byte(nil), data...)
+		binary.LittleEndian.PutUint32(invalid[exponentOffset:exponentOffset+4], exponent)
+
+		if _, err := ParsePublic(invalid); !errors.Is(err, ErrInvalidPublicKey) {
+			t.Errorf("ParsePublic exponent %d error=%v, want ErrInvalidPublicKey", exponent, err)
+		}
+	}
+}
+
+func TestRSAExponentMustFitBIField(t *testing.T) {
+	if strconv.IntSize < 64 {
+		t.Skip("an exponent outside uint32 requires a 64-bit int")
+	}
+
+	priv, err := Generate("wide-exponent", 1024)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	wideExponent := int(uint64(^uint32(0)) + 1)
+	pub := *priv.Public().Key
+	pub.E = wideExponent
+	if _, err := MarshalPublic(&PublicKeyFile{
+		Name: priv.Name,
+		Key:  &pub,
+	}); !errors.Is(err, ErrInvalidPublicKey) {
+		t.Fatalf("MarshalPublic error=%v, want ErrInvalidPublicKey", err)
+	}
+
+	privateKey := *priv.Key
+	privateKey.E = wideExponent
+	if _, err := MarshalPrivate(&PrivateKeyFile{
+		Name: priv.Name,
+		Key:  &privateKey,
+	}); !errors.Is(err, ErrInvalidPrivateKey) {
+		t.Fatalf("MarshalPrivate error=%v, want ErrInvalidPrivateKey", err)
+	}
+	if _, err := (&PrivateKeyFile{
+		Name: priv.Name,
+		Key:  &privateKey,
+	}).SignHashes(Version3, HashSet{}); !errors.Is(err, ErrInvalidPrivateKey) {
+		t.Fatalf("SignHashes error=%v, want ErrInvalidPrivateKey", err)
+	}
+}
+
+func TestWriterAPIsReturnErrShortWrite(t *testing.T) {
+	priv, err := Generate("short-write", 1024)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	sig, err := priv.SignHashes(Version3, HashSet{})
+	if err != nil {
+		t.Fatalf("SignHashes: %v", err)
+	}
+
+	testCases := []struct {
+		name  string
+		write func(io.Writer) error
+	}{
+		{name: "public key", write: func(w io.Writer) error { return WritePublicToWriter(w, priv.Public()) }},
+		{name: "private key", write: func(w io.Writer) error { return WritePrivateToWriter(w, priv) }},
+		{name: "signature", write: func(w io.Writer) error { return WriteSignatureToWriter(w, sig) }},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if err := testCase.write(shortWriter{}); !errors.Is(err, io.ErrShortWrite) {
+				t.Fatalf("write error=%v, want io.ErrShortWrite", err)
+			}
+		})
+	}
+}
+
+func TestMarshalRejectsEmbeddedNULKeyNames(t *testing.T) {
+	priv, err := Generate("embedded-nul", 1024)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	private := *priv
+	private.Name = "invalid\x00name"
+	public := *priv.Public()
+	public.Name = private.Name
+	sig, err := priv.SignHashes(Version3, HashSet{})
+	if err != nil {
+		t.Fatalf("SignHashes: %v", err)
+	}
+
+	sig.Public.Name = private.Name
+	if _, err := MarshalPrivate(&private); !errors.Is(err, ErrInvalidKeyName) {
+		t.Errorf("MarshalPrivate error=%v, want ErrInvalidKeyName", err)
+	}
+	if _, err := MarshalPublic(&public); !errors.Is(err, ErrInvalidKeyName) {
+		t.Errorf("MarshalPublic error=%v, want ErrInvalidKeyName", err)
+	}
+	if _, err := MarshalSignature(sig); !errors.Is(err, ErrInvalidKeyName) {
+		t.Errorf("MarshalSignature error=%v, want ErrInvalidKeyName", err)
+	}
+}
+
 func TestModulusSHA256InvalidKey(t *testing.T) {
 	t.Parallel()
 
@@ -1350,6 +1470,18 @@ type referenceSignature struct {
 	RSABits     int     // RSA modulus width in bits.
 	RSAExponent int     // RSA public exponent.
 	Hashes      HashSet // SHA-1 values recovered from the signature blocks.
+}
+
+// shortWriter violates io.Writer's full-write contract for regression testing.
+type shortWriter struct{}
+
+// Write reports a short write without an error.
+func (shortWriter) Write(data []byte) (int, error) {
+	if len(data) == 0 {
+		return 0, nil
+	}
+
+	return len(data) - 1, nil
 }
 
 // decodeReferenceSignature reads BI fields and recovers all three hashes independently.

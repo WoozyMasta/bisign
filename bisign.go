@@ -150,8 +150,7 @@ func WriteSignatureToWriter(w io.Writer, s *SignatureFile) error {
 		return err
 	}
 
-	_, err = w.Write(data)
-	return err
+	return writePayload(w, data)
 }
 
 // MarshalSignature encodes signature data into .bisign bytes.

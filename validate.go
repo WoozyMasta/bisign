@@ -63,6 +63,10 @@ func validateRSAPublicForBI(pub *rsa.PublicKey) error {
 		return err
 	}
 
+	if err := validateBIExponent(pub.E, ErrInvalidPublicKey); err != nil {
+		return err
+	}
+
 	if err := validateBIBitLen(pub.N.BitLen(), ErrInvalidPublicKey); err != nil {
 		return err
 	}
@@ -78,6 +82,19 @@ func validateRSAPrivateForSign(key *rsa.PrivateKey) error {
 
 	if key.N == nil || key.N.Sign() <= 0 || key.D == nil || key.D.Sign() <= 0 || key.E <= 1 {
 		return ErrInvalidPrivateKey
+	}
+
+	if err := validateBIExponent(key.E, ErrInvalidPrivateKey); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateBIExponent checks that an RSA exponent fits the BI uint32 field.
+func validateBIExponent(exponent int, baseErr error) error {
+	if exponent <= 1 || uint64(exponent) > uint64(^uint32(0)) {
+		return fmt.Errorf("%w: exponent cannot be represented in BI format", baseErr)
 	}
 
 	return nil
@@ -191,7 +208,7 @@ func validateSignatureFile(s *SignatureFile) error {
 		return ErrMissingEmbeddedPubKey
 	}
 
-	if err := validateRSAPublicForOp(s.Public.Key); err != nil {
+	if err := validateRSAPublicForBI(s.Public.Key); err != nil {
 		return err
 	}
 

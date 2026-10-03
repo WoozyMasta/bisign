@@ -170,8 +170,7 @@ func WritePrivateToWriter(w io.Writer, k *PrivateKeyFile) error {
 		return err
 	}
 
-	_, err = w.Write(data)
-	return err
+	return writePayload(w, data)
 }
 
 // MarshalPrivate encodes a private key into .biprivatekey bytes.

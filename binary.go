@@ -34,6 +34,19 @@ func checkInputSize(size, maxBytes int64) error {
 	return nil
 }
 
+// writePayload writes one complete serialized payload and reports short writes.
+func writePayload(w io.Writer, payload []byte) error {
+	written, err := w.Write(payload)
+	if err != nil {
+		return err
+	}
+	if written != len(payload) {
+		return io.ErrShortWrite
+	}
+
+	return nil
+}
+
 // safeU32 converts int to uint32 for use in BI format fields; clamps to [0, math.MaxUint32].
 func safeU32(i int) uint32 {
 	if i <= 0 {

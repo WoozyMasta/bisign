@@ -97,6 +97,10 @@ func loadPublicFromReader(r io.Reader, fileSize int64) (*PublicKeyFile, error) {
 	}
 
 	pub := &rsa.PublicKey{N: n, E: int(exponent)}
+	if err := validateRSAPublicForBI(pub); err != nil {
+		return nil, err
+	}
+
 	return &PublicKeyFile{Name: name, Key: pub}, nil
 }
 
@@ -117,8 +121,7 @@ func WritePublicToWriter(w io.Writer, k *PublicKeyFile) error {
 		return err
 	}
 
-	_, err = w.Write(data)
-	return err
+	return writePayload(w, data)
 }
 
 // MarshalPublic encodes a public key into .bikey bytes.

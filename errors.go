@@ -12,6 +12,8 @@ var (
 	ErrInvalidKeyHeader = errors.New("invalid key header")
 	// ErrInvalidKeyTag means the key tag is invalid.
 	ErrInvalidKeyTag = errors.New("invalid key tag")
+	// ErrInvalidKeyName means the key name cannot be represented in BI framing.
+	ErrInvalidKeyName = errors.New("invalid key name")
 	// ErrBlockSizeMismatch means the block size mismatch.
 	ErrBlockSizeMismatch = errors.New("block size mismatch")
 	// ErrModulusSizeMismatch means modulus bit length differs from the key header.

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"strings"
 )
 
 // blockSizePrivate returns the key block size for a .biprivatekey (after name+null and block size field).
@@ -117,6 +118,10 @@ func writeKeyHeader(
 ) error {
 	if len(name) > MaxKeyNameBytes {
 		return fmt.Errorf("%w: got=%d max=%d", ErrKeyNameTooLong, len(name), MaxKeyNameBytes)
+	}
+
+	if strings.IndexByte(name, 0) >= 0 {
+		return ErrInvalidKeyName
 	}
 
 	if _, err := w.Write(append([]byte(name), 0)); err != nil {
