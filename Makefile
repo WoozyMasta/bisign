@@ -5,10 +5,11 @@ VULNCHECK   ?= govulncheck
 BENCHSTAT   ?= benchstat
 BENCH_COUNT ?= 6
 BENCH_REF   ?= bench_baseline.txt
+FUZZ_TIME   ?= 10s
 
 .PHONY: check ci
 
-check: verify tidy fmt vulncheck vet lint-fix align-fix test test-race
+check: verify tidy fmt vulncheck vet lint-fix align-fix test test-race fuzz
 ci: download tools-ci verify tidy-check fmt-check vulncheck vet lint align test
 
 .PHONY: test test-race
@@ -36,6 +37,16 @@ bench-fast:
 
 bench-reset:
 	rm -f "$(BENCH_REF)"
+
+.PHONY: fuzz
+
+fuzz:
+	$(GO) test -run='^$$' -fuzz='^FuzzParsePublic$$' -fuzztime=$(FUZZ_TIME) .
+	$(GO) test -run='^$$' -fuzz='^FuzzParsePrivate$$' -fuzztime=$(FUZZ_TIME) .
+	$(GO) test -run='^$$' -fuzz='^FuzzParseSignature$$' -fuzztime=$(FUZZ_TIME) .
+	$(GO) test -run='^$$' -fuzz='^FuzzVerifyHashes$$' -fuzztime=$(FUZZ_TIME) .
+
+.PHONY: download verify vet tidy tidy-check fmt fmt-check vulncheck lint lint-fix align align-fix
 
 download:
 	$(GO) mod download
