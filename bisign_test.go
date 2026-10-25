@@ -3,11 +3,16 @@ package bisign
 import (
 	"bytes"
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -77,6 +82,162 @@ func TestLoadRSAPrivateRejectsOpenSSH(t *testing.T) {
 	_, err := LoadRSAPrivate(path, "")
 	if !errors.Is(err, ErrOpenSSHPrivateKeyUnsupported) {
 		t.Fatalf("expected ErrOpenSSHPrivateKeyUnsupported, got: %v", err)
+	}
+}
+
+// TestLoadRSAPrivateSupportedEncodings covers each supported private-key container.
+func TestLoadRSAPrivateSupportedEncodings(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		t.Fatalf("GenerateKey: %v", err)
+	}
+
+	pkcs1DER := x509.MarshalPKCS1PrivateKey(key)
+	pkcs8DER, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		t.Fatalf("MarshalPKCS8PrivateKey: %v", err)
+	}
+
+	testCases := []struct {
+		name string
+		data []byte
+	}{
+		{name: "PKCS1 DER", data: pkcs1DER},
+		{name: "PKCS8 DER", data: pkcs8DER},
+		{
+			name: "PKCS1 PEM",
+			data: pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: pkcs1DER}),
+		},
+		{
+			name: "PKCS8 PEM",
+			data: pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8DER}),
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "key.pem")
+			if err := os.WriteFile(path, testCase.data, 0600); err != nil {
+				t.Fatalf("WriteFile: %v", err)
+			}
+
+			loaded, err := LoadRSAPrivate(path, "")
+			if err != nil {
+				t.Fatalf("LoadRSAPrivate: %v", err)
+			}
+
+			assertRSAPrivateKeyEqual(t, key, loaded)
+		})
+	}
+}
+
+// TestLoadRSAPrivateInvalidInputs covers encrypted and non-RSA import paths.
+func TestLoadRSAPrivateInvalidInputs(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		t.Fatalf("GenerateKey: %v", err)
+	}
+
+	pkcs1DER := x509.MarshalPKCS1PrivateKey(key)
+	encryptedBlock, err := x509.EncryptPEMBlock(
+		rand.Reader,
+		"RSA PRIVATE KEY",
+		pkcs1DER,
+		[]byte("test-passphrase"),
+		x509.PEMCipherAES256,
+	)
+	if err != nil {
+		t.Fatalf("EncryptPEMBlock: %v", err)
+	}
+
+	encryptedPEM := pem.EncodeToMemory(encryptedBlock)
+	ecdsaKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("ecdsa.GenerateKey: %v", err)
+	}
+
+	ecdsaDER, err := x509.MarshalPKCS8PrivateKey(ecdsaKey)
+	if err != nil {
+		t.Fatalf("MarshalPKCS8PrivateKey ECDSA: %v", err)
+	}
+
+	ecdsaPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: ecdsaDER})
+	nonKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: []byte("test")})
+	encryptedPKCS8PEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "ENCRYPTED PRIVATE KEY",
+		Bytes: []byte("encrypted"),
+	})
+
+	testCases := []struct {
+		name       string
+		data       []byte
+		passphrase string
+		wantErr    error
+	}{
+		{name: "encrypted without passphrase", data: encryptedPEM, wantErr: ErrEncryptedPrivateKey},
+		{name: "non-RSA PKCS8", data: ecdsaPEM, wantErr: ErrPKCS8NotRSA},
+		{name: "non-RSA PKCS8 DER", data: ecdsaDER, wantErr: ErrDERNotRSAPrivateKey},
+		{name: "unsupported PEM block", data: nonKeyPEM, wantErr: ErrNoRSAPrivateKeyInPEM},
+		{name: "encrypted PKCS8", data: encryptedPKCS8PEM, wantErr: ErrEncryptedPKCS8NotSupported},
+		{name: "truncated DER", data: []byte{0x30, 0x80, 0x00}},
+		{name: "input exceeds configured limit", data: make([]byte, MaxRSAPrivateFileBytes+1), wantErr: ErrInputTooLarge},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "key.pem")
+			if err := os.WriteFile(path, testCase.data, 0600); err != nil {
+				t.Fatalf("WriteFile: %v", err)
+			}
+
+			_, err := LoadRSAPrivate(path, testCase.passphrase)
+			if testCase.wantErr == nil {
+				if err == nil {
+					t.Fatal("LoadRSAPrivate accepted invalid input")
+				}
+
+				return
+			}
+
+			if !errors.Is(err, testCase.wantErr) {
+				t.Fatalf("LoadRSAPrivate error=%v, want errors.Is(_, %v)", err, testCase.wantErr)
+			}
+		})
+	}
+
+	path := filepath.Join(t.TempDir(), "encrypted.pem")
+	if err := os.WriteFile(path, encryptedPEM, 0600); err != nil {
+		t.Fatalf("WriteFile encrypted PEM: %v", err)
+	}
+
+	loaded, err := LoadRSAPrivate(path, "test-passphrase")
+	if err != nil {
+		t.Fatalf("LoadRSAPrivate with passphrase: %v", err)
+	}
+
+	assertRSAPrivateKeyEqual(t, key, loaded)
+	if _, err := LoadRSAPrivate(path, "wrong-passphrase"); err == nil {
+		t.Fatal("LoadRSAPrivate accepted an incorrect passphrase")
+	}
+}
+
+// assertRSAPrivateKeyEqual compares key material preserved by private-key imports.
+func assertRSAPrivateKeyEqual(t *testing.T, want, got *rsa.PrivateKey) {
+	t.Helper()
+
+	if err := got.Validate(); err != nil {
+		t.Fatalf("loaded RSA key is invalid: %v", err)
+	}
+	if want.E != got.E || want.N.Cmp(got.N) != 0 || want.D.Cmp(got.D) != 0 {
+		t.Fatal("loaded RSA public key or private exponent changed")
+	}
+	if len(want.Primes) != len(got.Primes) {
+		t.Fatalf("loaded RSA prime count=%d, want %d", len(got.Primes), len(want.Primes))
+	}
+	for index := range want.Primes {
+		if want.Primes[index].Cmp(got.Primes[index]) != 0 {
+			t.Fatalf("loaded RSA prime %d changed", index+1)
+		}
 	}
 }
 
