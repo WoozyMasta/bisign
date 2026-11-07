@@ -3,48 +3,20 @@
 // Source: github.com/woozymasta/bisign
 
 /*
-Package bisign implements Bohemia Interactive signature and key file formats
-used by Arma and DayZ (.biprivatekey, .bikey, .bisign).
+Package bisign reads, writes, creates, and verifies
+BI key and signature files used by Arma and DayZ:
+`.bikey`, `.biprivatekey`, and `.bisign`.
 
-# Key files
+Callers provide the three digests in [HashSet].
+The package does not read PBO files or calculate their hashes.
+Signing uses PKCS#1 v1.5 with SHA-1 and creates V2 or V3 signatures.
 
-Load and write RSA keys in BI format:
+[SignatureFile.VerifyHashes] checks only the block selected by the signature version:
+V1 uses [HashSet.Hash1], V2 uses [HashSet.Hash2], and V3 uses [HashSet.Hash3].
+[SignatureFile.RecoverHashes] attempts all three blocks and may fail on an unselected block.
+Parsing checks the BI structure, not the signature's cryptographic validity.
 
-	priv, err := bisign.LoadPrivate("identity.biprivatekey")
-	if err != nil { ... }
-	pub := priv.Public()
-	bisign.WritePublic("identity.bikey", pub)
-
-Generate a new key pair:
-
-	priv, err := bisign.Generate("mykey", 1024)
-	bisign.WritePrivate("mykey.biprivatekey", priv)
-	bisign.WritePublic("mykey.bikey", priv.Public())
-
-# Signatures
-
-Sign a hash set (e.g. from PBO hashes) and write a .bisign file:
-
-	var hs bisign.HashSet
-	// fill hs.Hash1, Hash2, Hash3 with 20-byte SHA1 digests
-	sig, err := priv.SignHashes(bisign.Version3, hs)
-	bisign.WriteSignature("file.pbo.mykey.bisign", sig)
-
-Load a .bisign and recover or verify hashes:
-
-	s, err := bisign.LoadSignature("file.pbo.mykey.bisign")
-	recovered, err := s.RecoverHashes()
-	err = s.VerifyHashes(expectedHashSet)
-
-Inspect metadata from one supported file type:
-
-	info, err := bisign.Inspect("identity.bikey")
-	_ = info
-
-Signature files in versions 1, 2, and 3 can be loaded and saved.
-Verification checks only the hash block selected by the version;
-signing supports versions 2 and 3. Signing uses PKCS#1 v1.5 with SHA-1.
-Generate accepts power-of-two key sizes starting at 512 bits.
-BI files can be loaded/saved via paths, readers/writers, or in-memory bytes.
+Runnable examples for key creation, signing and verification,
+and metadata inspection appear in the Go package documentation.
 */
 package bisign

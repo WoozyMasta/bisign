@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning][].
 
 * Added original DayZ and Arma BI keys and V2/V3 signatures
   as a reproducible corpus with independently decoded hash vectors.
+* Added runnable Go examples for key creation,
+  signature verification, and metadata inspection.
 
 ### Changed
 
