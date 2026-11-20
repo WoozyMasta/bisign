@@ -1005,6 +1005,52 @@ func TestPrivateKeyExportRejectsUnsupportedPrimeLayout(t *testing.T) {
 	})
 }
 
+func TestPrivateKeyExportRejectsOversizedPrivateExponent(t *testing.T) {
+	t.Parallel()
+
+	generated, err := Generate("oversized-private-exponent", 1024)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	pMinusOne := new(big.Int).Sub(generated.Key.Primes[0], big.NewInt(1))
+	qMinusOne := new(big.Int).Sub(generated.Key.Primes[1], big.NewInt(1))
+	phi := new(big.Int).Mul(pMinusOne, qMinusOne)
+	wideKey := *generated.Key
+	wideKey.D = new(big.Int).Add(
+		generated.Key.D,
+		new(big.Int).Mul(phi, big.NewInt(4)),
+	)
+	wideKey.Precomputed = rsa.PrecomputedValues{}
+	if wideKey.D.BitLen() <= wideKey.N.BitLen() {
+		t.Fatalf(
+			"private exponent bit length=%d, want greater than modulus bit length=%d",
+			wideKey.D.BitLen(), wideKey.N.BitLen(),
+		)
+	}
+
+	for _, prime := range wideKey.Primes {
+		primeMinusOne := new(big.Int).Sub(prime, big.NewInt(1))
+		product := new(big.Int).Mul(big.NewInt(int64(wideKey.E)), wideKey.D)
+		if product.Mod(product, primeMinusOne).Cmp(big.NewInt(1)) != 0 {
+			t.Fatal("oversized private exponent does not satisfy the RSA exponent relation")
+		}
+	}
+
+	if _, err := FromRSAPrivate(
+		"oversized-private-exponent", &wideKey,
+	); !errors.Is(err, ErrInvalidPrivateKey) {
+		t.Fatalf("FromRSAPrivate error=%v, want ErrInvalidPrivateKey", err)
+	}
+
+	if _, err := MarshalPrivate(&PrivateKeyFile{
+		Name: "oversized-private-exponent",
+		Key:  &wideKey,
+	}); !errors.Is(err, ErrInvalidPrivateKey) {
+		t.Fatalf("MarshalPrivate error=%v, want ErrInvalidPrivateKey", err)
+	}
+}
+
 func TestWriteReversedBigIntRejectsTruncation(t *testing.T) {
 	var buf bytes.Buffer
 	err := writeReversedBigInt(&buf, big.NewInt(256), 1)
