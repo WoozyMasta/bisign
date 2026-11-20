@@ -16,7 +16,7 @@ and metadata inspection.
 * Generates RSA key pairs with package-supported bit sizes.
 
 > [!NOTE]  
-> This package does not compute `hash1/hash2/hash3` from PBO data.
+> This package does not compute `hash1/hash2/hash3` from PBO data.  
 > For working with PBO files, check out the [pbo][] package.
 
 ## Installation
