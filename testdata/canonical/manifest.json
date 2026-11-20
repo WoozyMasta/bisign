@@ -204,18 +204,18 @@
     },
     {
       "path": "provenance/cases/arma-v3/checker/run.json",
-      "size": 849,
-      "sha256": "b963fea0524d0aee434e86b906877d7a1bebb6b1771f0e3b3c151ea09278d51d"
+      "size": 821,
+      "sha256": "8c671ee0ab51ea948431af11e3faaea658d36d6a21a61b748f05aa17786031fa"
     },
     {
       "path": "provenance/cases/arma-v3/checker-deep/run.json",
-      "size": 523,
-      "sha256": "897c1cf350a96d9e2c201b4f31ed0f9bd3738a92a23d69697516a1564c14a89b"
+      "size": 506,
+      "sha256": "c9d13a0637130d273c561338ab65a2543d3161916c5cf7a02d027ae134cef57b"
     },
     {
       "path": "provenance/cases/dayz-v2/run.json",
-      "size": 1266,
-      "sha256": "1d8092e26e533a0458aa3e66570f8ec8745e03601df5899aa4fe8de8d750a435"
+      "size": 1224,
+      "sha256": "87b245cddc737e20d27360d9b38819bd7476cc37eb475546de18d45eb06bae1b"
     },
     {
       "path": "provenance/cases/dayz-v2/seed-source.pbo",
@@ -229,8 +229,8 @@
     },
     {
       "path": "provenance/cases/dayz-v2/checker/run.json",
-      "size": 851,
-      "sha256": "24f3f38f8a3e203fe00e17052453e7516760ca8e3d1966229de9783ae95698c5"
+      "size": 823,
+      "sha256": "abe15dcf54338bcb5d0a0eef0e6c0701b1023c97d77ba2ba5fa9e06e3f67e46c"
     },
     {
       "path": "provenance/cases/arma-v3/seed-source.pbo.BisignArmaReference.bisign",
@@ -239,8 +239,8 @@
     },
     {
       "path": "provenance/cases/dayz-v2/checker/stdout.txt",
-      "size": 208,
-      "sha256": "93082fe2850f5ceeba1665aba1a07902ffc1107645b22ae2f7ab47c2b3d91337"
+      "size": 205,
+      "sha256": "1798df1b03a43f1e74cc51da494069d96682d0350eed20958ee57087f856ae07"
     },
     {
       "path": "provenance/cases/dayz-v3/seed-source.pbo",
@@ -254,28 +254,28 @@
     },
     {
       "path": "provenance/cases/dayz-v3/checker/run.json",
-      "size": 851,
-      "sha256": "21e4e6826d1c05728b9d6f327a4eac15e65f00d3506e0cd5a5ca36c2d5fc45b2"
+      "size": 823,
+      "sha256": "e4a342093a2f5ef7a41a9a57709ddf375bc39414566d5e28dc1fd8e174d62d42"
     },
     {
       "path": "provenance/cases/dayz-v3/checker/stdout.txt",
-      "size": 96,
-      "sha256": "8c8dbc3247628a32c9b6b603f79c46c61f60373ce2c7ca86cf60048617f01b09"
+      "size": 94,
+      "sha256": "d1eac4a4e918074e3b93a0a7ecfa985b881709c574d57ce00364c2299a55da30"
     },
     {
       "path": "provenance/dayz-keygen/run.json",
-      "size": 816,
-      "sha256": "f592b0d5e318717400aedb50acb06ce157dfbae130727716585074138be2e3b8"
+      "size": 787,
+      "sha256": "904bf3812b6d556d905fab59dcbe33be2b9540a74590ecc6f3283bb6ab329ee5"
     },
     {
       "path": "provenance/filebank-seed/run.json",
-      "size": 861,
-      "sha256": "09049ac85a092cf3facf723a045567314f73cfe2af24be14616775d05628e46a"
+      "size": 828,
+      "sha256": "76203a8143e562090f25a09451a59c18b27ee821142e5467ef39df256a959481"
     },
     {
       "path": "provenance/cases/dayz-v3/run.json",
-      "size": 1254,
-      "sha256": "84d738c0aeb5140e56e7406fd627bf0b76388a75c7ebf5f73319f6007c838a1c"
+      "size": 1213,
+      "sha256": "5435d5fe2216aae13ff6edfcb39bb80bfb4fbe76c049c9c85726e384028dbc65"
     },
     {
       "path": "provenance/cases/arma-v3/seed-source.pbo",
@@ -284,13 +284,13 @@
     },
     {
       "path": "provenance/cases/arma-v3/run.json",
-      "size": 1193,
-      "sha256": "4ddd8ba0c8e2bad2470bef53bda712aaa806b4f7d7353541c2f6656c99db104e"
+      "size": 1154,
+      "sha256": "40761417d69258b7818c4322c5638c4b1ab7baeb1f053f9fc5e83cd28f033c93"
     },
     {
       "path": "provenance/cases/arma-v2/dayz-checker/run.json",
-      "size": 617,
-      "sha256": "0be149a2d1941045481d902ab1bff481d0b05c65d27bca269158ecaf95df42bc"
+      "size": 602,
+      "sha256": "8070b1a85e0fb92936e6e195e987ef32714e46c43806f165d0a52ea9114b8d93"
     },
     {
       "path": "arma/keys/BisignArmaReference.bikey",
@@ -334,13 +334,13 @@
     },
     {
       "path": "provenance/arma-keygen/run.json",
-      "size": 816,
-      "sha256": "29c4e9d2a83aebf78949760204b3c1b09bb65ce9ddcdfe0aa28a410ca2a7ec85"
+      "size": 787,
+      "sha256": "b01e6f5353b1f769861e7ad699e6dba080b2c05429ae4574dda2b5264d94d204"
     },
     {
       "path": "provenance/cases/arma-v2/run.json",
-      "size": 1205,
-      "sha256": "eb80d25ececd0056d2c8fa6c5b8add887bcc4f138870c37c2ac595ed86f9356f"
+      "size": 1165,
+      "sha256": "79800976ed0b28208f59bb7e43dc2eb7fba9e23f80e44613aeec1679592f9b9a"
     },
     {
       "path": "provenance/cases/arma-v2/seed-source.pbo",
@@ -354,18 +354,18 @@
     },
     {
       "path": "provenance/cases/arma-v2/checker/run.json",
-      "size": 844,
-      "sha256": "1c6a4a3f60217ea4cc94acafd4db62e62b567aed40f11ebb036d2e9ade44df75"
+      "size": 816,
+      "sha256": "42a61be796231af0a0296bb1a5c4e4ca433fd685931ea893d7b265fbb88b6b0b"
     },
     {
       "path": "provenance/cases/arma-v2/checker/stdout.txt",
-      "size": 114,
-      "sha256": "9d9c813613b20ae39c2192daf39bf5909c43788729f7a9731afd5d8e965da4ff"
+      "size": 112,
+      "sha256": "2eac450f06cccbe8d9093287c473d7bf7f7de9f4d147b6ebfc3104436af770fa"
     },
     {
       "path": "provenance/cases/arma-v2/checker-deep/run.json",
-      "size": 533,
-      "sha256": "cc8ab5cab6fd1c936c3bba432f90fcb4ef34d7ef2a36114b02f70bc62ff520b7"
+      "size": 516,
+      "sha256": "248b6147d52c0df3eac39db2dca0c3a658b363bfdccc5a3ab347d8839114a1ef"
     },
     {
       "path": "seed/seed-source.pbo",
