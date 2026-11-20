@@ -16,6 +16,8 @@ var (
 	ErrInvalidKeyName = errors.New("invalid key name")
 	// ErrBlockSizeMismatch means the block size mismatch.
 	ErrBlockSizeMismatch = errors.New("block size mismatch")
+	// ErrIntegerDoesNotFitField means an integer exceeds its fixed-width BI field.
+	ErrIntegerDoesNotFitField = errors.New("integer does not fit field")
 	// ErrModulusSizeMismatch means modulus bit length differs from the key header.
 	ErrModulusSizeMismatch = errors.New("modulus size mismatch")
 	// ErrInputTooLarge means input exceeds its format size limit.

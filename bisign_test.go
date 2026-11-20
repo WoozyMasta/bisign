@@ -939,6 +939,83 @@ func TestRSAExponentMustFitBIField(t *testing.T) {
 	}
 }
 
+func TestPrivateKeyExportRejectsUnsupportedPrimeLayout(t *testing.T) {
+	t.Parallel()
+
+	t.Run("unequal prime widths", func(t *testing.T) {
+		var key *rsa.PrivateKey
+
+		for key == nil {
+			p, err := rand.Prime(rand.Reader, 300)
+			if err != nil {
+				t.Fatalf("generate P: %v", err)
+			}
+
+			q, err := rand.Prime(rand.Reader, 212)
+			if err != nil {
+				t.Fatalf("generate Q: %v", err)
+			}
+
+			n := new(big.Int).Mul(p, q)
+			if n.BitLen() != 512 {
+				continue
+			}
+
+			const exponent = 65537
+			phi := new(big.Int).Mul(
+				new(big.Int).Sub(p, big.NewInt(1)),
+				new(big.Int).Sub(q, big.NewInt(1)),
+			)
+			d := new(big.Int).ModInverse(big.NewInt(exponent), phi)
+			if d == nil {
+				continue
+			}
+
+			candidate := &rsa.PrivateKey{
+				PublicKey: rsa.PublicKey{N: n, E: exponent},
+				D:         d,
+				Primes:    []*big.Int{p, q},
+			}
+			candidate.Precompute()
+			if candidate.Validate() == nil {
+				key = candidate
+			}
+		}
+
+		if _, err := FromRSAPrivate("unequal-primes", key); !errors.Is(err, ErrInvalidPrivateKey) {
+			t.Fatalf("FromRSAPrivate error=%v, want ErrInvalidPrivateKey", err)
+		}
+		if _, err := MarshalPrivate(&PrivateKeyFile{Name: "unequal-primes", Key: key}); !errors.Is(err, ErrInvalidPrivateKey) {
+			t.Fatalf("MarshalPrivate error=%v, want ErrInvalidPrivateKey", err)
+		}
+	})
+
+	t.Run("multiple primes", func(t *testing.T) {
+		key, err := rsa.GenerateMultiPrimeKey(rand.Reader, 3, 1024)
+		if err != nil {
+			t.Fatalf("GenerateMultiPrimeKey: %v", err)
+		}
+
+		if _, err := FromRSAPrivate("multi-prime", key); !errors.Is(err, ErrInvalidPrivateKey) {
+			t.Fatalf("FromRSAPrivate error=%v, want ErrInvalidPrivateKey", err)
+		}
+		if _, err := MarshalPrivate(&PrivateKeyFile{Name: "multi-prime", Key: key}); !errors.Is(err, ErrInvalidPrivateKey) {
+			t.Fatalf("MarshalPrivate error=%v, want ErrInvalidPrivateKey", err)
+		}
+	})
+}
+
+func TestWriteReversedBigIntRejectsTruncation(t *testing.T) {
+	var buf bytes.Buffer
+	err := writeReversedBigInt(&buf, big.NewInt(256), 1)
+	if !errors.Is(err, ErrIntegerDoesNotFitField) {
+		t.Fatalf("writeReversedBigInt error=%v, want ErrIntegerDoesNotFitField", err)
+	}
+	if buf.Len() != 0 {
+		t.Fatalf("writeReversedBigInt wrote %d bytes before rejecting the value", buf.Len())
+	}
+}
+
 func TestWriterAPIsReturnErrShortWrite(t *testing.T) {
 	priv, err := Generate("short-write", 1024)
 	if err != nil {

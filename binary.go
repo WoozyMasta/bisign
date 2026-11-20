@@ -97,8 +97,7 @@ func writeReversedBigInt(w io.Writer, n *big.Int, size uint32) error {
 	rawLen := safeU32(len(raw))
 
 	if rawLen > size {
-		raw = raw[len(raw)-int(size):]
-		rawLen = size
+		return fmt.Errorf("%w: value=%d bytes field=%d bytes", ErrIntegerDoesNotFitField, rawLen, size)
 	}
 
 	buf := make([]byte, size)

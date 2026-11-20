@@ -7,6 +7,7 @@ package bisign
 import (
 	"crypto/rsa"
 	"fmt"
+	"math/big"
 )
 
 // validateSignatureVersion checks whether v is supported by the BI file format.
@@ -109,7 +110,7 @@ func validateRSAPrivateForBIWrite(key *rsa.PrivateKey) error {
 		return err
 	}
 
-	if len(key.Primes) < 2 || key.Primes[0] == nil || key.Primes[1] == nil {
+	if len(key.Primes) != 2 || key.Primes[0] == nil || key.Primes[1] == nil {
 		return ErrInvalidPrivateKey
 	}
 
@@ -123,6 +124,34 @@ func validateRSAPrivateForBIWrite(key *rsa.PrivateKey) error {
 
 	if !hasRSAStaticPrecomputed(key) {
 		return ErrInvalidPrivateKey
+	}
+
+	componentSize := safeU32(key.N.BitLen()) / 16
+	for _, component := range []struct {
+		name  string
+		value *big.Int
+		size  uint32
+	}{
+		{name: "modulus", value: key.N, size: componentSize * 2},
+		{name: "prime P", value: key.Primes[0], size: componentSize},
+		{name: "prime Q", value: key.Primes[1], size: componentSize},
+		{name: "CRT exponent P", value: key.Precomputed.Dp, size: componentSize},
+		{name: "CRT exponent Q", value: key.Precomputed.Dq, size: componentSize},
+		{name: "CRT coefficient", value: key.Precomputed.Qinv, size: componentSize},
+		{name: "private exponent", value: key.D, size: componentSize * 2},
+	} {
+		if err := validateBIIntegerWidth(component.name, component.value, component.size); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// validateBIIntegerWidth rejects values that would be truncated by a fixed-width BI field.
+func validateBIIntegerWidth(name string, value *big.Int, size uint32) error {
+	if value == nil || value.Sign() < 0 || safeU32(len(value.Bytes())) > size {
+		return fmt.Errorf("%w: %s does not fit in %d bytes", ErrInvalidPrivateKey, name, size)
 	}
 
 	return nil
