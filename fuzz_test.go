@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 WoozyMasta
+// Source: github.com/woozymasta/bisign
+
 package bisign
 
 import (
@@ -99,37 +103,17 @@ func FuzzParsePublic(f *testing.F) {
 	f.Add(minimum)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		parsed, parseErr := ParsePublic(data)
-		fromReader, readerErr := LoadPublicFromReader(bytes.NewReader(data))
-		if (parseErr == nil) != (readerErr == nil) {
-			t.Fatalf("ParsePublic and LoadPublicFromReader disagree: parse=%v reader=%v", parseErr, readerErr)
-		}
-		if parseErr != nil {
-			return
-		}
-		if !fuzzPublicEqual(parsed, fromReader) {
-			t.Fatal("ParsePublic and LoadPublicFromReader returned different keys")
-		}
-
-		canonicalBytes, err := MarshalPublic(parsed)
-		if err != nil {
-			t.Fatalf("MarshalPublic accepted input but rejected parsed key: %v", err)
-		}
-		roundtrip, err := ParsePublic(canonicalBytes)
-		if err != nil {
-			t.Fatalf("ParsePublic after MarshalPublic: %v", err)
-		}
-		if !fuzzPublicEqual(parsed, roundtrip) {
-			t.Fatal("public key parameters changed after marshal/parse")
-		}
-
-		remarshaled, err := MarshalPublic(roundtrip)
-		if err != nil {
-			t.Fatalf("MarshalPublic after roundtrip: %v", err)
-		}
-		if !bytes.Equal(canonicalBytes, remarshaled) {
-			t.Fatal("public key serialization did not reach a stable form")
-		}
+		fuzzCheckParserRoundtrip(
+			t,
+			data,
+			"public key",
+			ParsePublic,
+			func(data []byte) (*PublicKeyFile, error) {
+				return LoadPublicFromReader(bytes.NewReader(data))
+			},
+			MarshalPublic,
+			fuzzPublicEqual,
+		)
 	})
 }
 
@@ -151,39 +135,63 @@ func FuzzParsePrivate(f *testing.F) {
 	f.Add(minimum)
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		parsed, parseErr := ParsePrivate(data)
-		fromReader, readerErr := LoadPrivateFromReader(bytes.NewReader(data))
-		if (parseErr == nil) != (readerErr == nil) {
-			t.Fatalf("ParsePrivate and LoadPrivateFromReader disagree: parse=%v reader=%v", parseErr, readerErr)
-		}
-		if parseErr != nil {
-			return
-		}
-		if !fuzzPrivateEqual(parsed, fromReader) {
-			t.Fatal("ParsePrivate and LoadPrivateFromReader returned different keys")
-		}
-
-		canonicalBytes, err := MarshalPrivate(parsed)
-		if err != nil {
-			t.Fatalf("MarshalPrivate accepted input but rejected parsed key: %v", err)
-		}
-
-		roundtrip, err := ParsePrivate(canonicalBytes)
-		if err != nil {
-			t.Fatalf("ParsePrivate after MarshalPrivate: %v", err)
-		}
-		if !fuzzPrivateEqual(parsed, roundtrip) {
-			t.Fatal("private key parameters changed after marshal/parse")
-		}
-
-		remarshaled, err := MarshalPrivate(roundtrip)
-		if err != nil {
-			t.Fatalf("MarshalPrivate after roundtrip: %v", err)
-		}
-		if !bytes.Equal(canonicalBytes, remarshaled) {
-			t.Fatal("private key serialization did not reach a stable form")
-		}
+		fuzzCheckParserRoundtrip(
+			t,
+			data,
+			"private key",
+			ParsePrivate,
+			func(data []byte) (*PrivateKeyFile, error) {
+				return LoadPrivateFromReader(bytes.NewReader(data))
+			},
+			MarshalPrivate,
+			fuzzPrivateEqual,
+		)
 	})
+}
+
+// fuzzCheckParserRoundtrip checks reader parity and canonical marshal stability.
+func fuzzCheckParserRoundtrip[T any](
+	t *testing.T,
+	data []byte,
+	name string,
+	parse func([]byte) (T, error),
+	load func([]byte) (T, error),
+	marshal func(T) ([]byte, error),
+	equal func(T, T) bool,
+) {
+	t.Helper()
+
+	parsed, parseErr := parse(data)
+	fromReader, readerErr := load(data)
+	if (parseErr == nil) != (readerErr == nil) {
+		t.Fatalf("%s parser and reader disagree: parse=%v reader=%v", name, parseErr, readerErr)
+	}
+	if parseErr != nil {
+		return
+	}
+	if !equal(parsed, fromReader) {
+		t.Fatalf("%s parser and reader returned different values", name)
+	}
+
+	canonicalBytes, err := marshal(parsed)
+	if err != nil {
+		t.Fatalf("marshal parsed %s: %v", name, err)
+	}
+	roundtrip, err := parse(canonicalBytes)
+	if err != nil {
+		t.Fatalf("parse marshaled %s: %v", name, err)
+	}
+	if !equal(parsed, roundtrip) {
+		t.Fatalf("%s changed after marshal/parse", name)
+	}
+
+	remarshaled, err := marshal(roundtrip)
+	if err != nil {
+		t.Fatalf("marshal roundtripped %s: %v", name, err)
+	}
+	if !bytes.Equal(canonicalBytes, remarshaled) {
+		t.Fatalf("%s serialization did not reach a stable form", name)
+	}
 }
 
 // FuzzParseSignature checks parser parity and preserves all serialized blocks.
@@ -272,7 +280,7 @@ func FuzzVerifyHashes(f *testing.F) {
 		signature.Version = version
 		hashes := seed.hashes
 
-		selected, digest, validVersion := fuzzSelectedPair(signature.Version, &hashes)
+		selected, _, validVersion := fuzzSelectedPair(signature.Version, &hashes)
 		if validVersion {
 			blockIndex := int(fuzzControlByte(data, 3))
 			blockByte := int(fuzzControlByte(data, 4))
@@ -339,7 +347,7 @@ func FuzzVerifyHashes(f *testing.F) {
 			return
 		}
 
-		selected, digest, _ = fuzzSelectedPair(signature.Version, &hashes)
+		_, digest, _ := fuzzSelectedPair(signature.Version, &hashes)
 		valid := independentRSAOracle(signature.Public.Key, fuzzBlock(signature, selected), digest)
 		if valid != (err == nil) {
 			t.Fatalf(
@@ -392,7 +400,7 @@ func TestRecoverHashesRejectsEachInvalidBlock(t *testing.T) {
 		t.Fatalf("RecoverHashes valid seed: %v", err)
 	}
 
-	for blockIndex := 0; blockIndex < 3; blockIndex++ {
+	for blockIndex := range 3 {
 		candidate := cloneFuzzSignature(signature)
 		fuzzSetBlock(candidate, blockIndex, bytes.Clone(badPadding[blockIndex]))
 		if recovered, err := candidate.RecoverHashes(); err == nil || recovered != (HashSet{}) {
@@ -522,7 +530,7 @@ func addSignatureFuzzSeeds(f *testing.F, canonical []byte, signature *SignatureF
 	}
 	for _, lengthOffset := range []int{offsets.block1Length, offsets.block2Length, offsets.block3Length} {
 		f.Add(fuzzMutateU32(canonical, lengthOffset, 0))
-		f.Add(fuzzMutateU32(canonical, lengthOffset, uint32(signature.Public.Key.Size()-1)))
+		f.Add(fuzzMutateU32(canonical, lengthOffset, safeU32(signature.Public.Key.Size()-1)))
 	}
 
 	badBlock := bytes.Clone(canonical)
@@ -549,7 +557,7 @@ func addVerifyFuzzInputs(f *testing.F, seeds []fuzzSignatureSeed) {
 
 	for _, version := range []Version{Version1, Version2, Version3} {
 		seedIndex := verifySeedIndexForVersion(seeds, version, false)
-		for action := byte(fuzzVerifySelectedHash); action <= fuzzVerifyAboveModulusSignature; action++ {
+		for action := fuzzVerifySelectedHash; action <= fuzzVerifyAboveModulusSignature; action++ {
 			f.Add(encodeVerifyControl(seedIndex, version, action))
 		}
 		originalIndex := verifySeedIndexForVersion(seeds, version, true)
@@ -660,7 +668,7 @@ func validateVerifyFuzzSeed(f *testing.F, seed fuzzSignatureSeed) {
 		f.Fatalf("signature seed %q has unsupported version %d", seed.name, seed.signature.Version)
 	}
 
-	for index := 0; index < 3; index++ {
+	for index := range 3 {
 		if !independentRSAOracle(
 			seed.signature.Public.Key,
 			fuzzBlock(seed.signature, index),
@@ -749,7 +757,7 @@ func signFuzzHashSetRaw(key *rsa.PrivateKey, hashes HashSet, version Version) (*
 		Version: version,
 	}
 
-	for index := 0; index < 3; index++ {
+	for index := range 3 {
 		encoded, err := independentPKCS1v15SHA1(key.Size(), fuzzHashAt(&hashes, index))
 		if err != nil {
 			return nil, fmt.Errorf("encode digest for block %d: %w", index+1, err)
@@ -1124,7 +1132,17 @@ func fuzzSyntheticHashes() HashSet {
 
 // encodeVerifyControl encodes a fuzz seed and one controlled verification action.
 func encodeVerifyControl(seed int, version Version, action byte) []byte {
-	return []byte{byte(seed), byte(version), action, 1, 0x5a, 7, 0, 0xa5}
+	if seed < 0 || seed > 255 {
+		panic("fuzz seed index does not fit control byte")
+	}
+	if uint32(version) > 255 {
+		panic("signature version does not fit control byte")
+	}
+
+	var versionBytes [4]byte
+	binary.LittleEndian.PutUint32(versionBytes[:], uint32(version))
+
+	return []byte{byte(seed), versionBytes[0], action, 1, 0x5a, 7, 0, 0xa5}
 }
 
 // verifySeedIndexForVersion chooses a prepared seed with requested key size and version.

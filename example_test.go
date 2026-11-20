@@ -19,7 +19,11 @@ func ExampleGenerate() {
 		fmt.Println("create temporary directory:", err)
 		return
 	}
-	defer os.RemoveAll(dir)
+	defer func() {
+		if err := os.RemoveAll(dir); err != nil {
+			fmt.Println("remove temporary directory:", err)
+		}
+	}()
 
 	private, err := bisign.Generate("example-key", 2048)
 	if err != nil {
@@ -107,7 +111,11 @@ func ExampleInspect() {
 		fmt.Println("create temporary directory:", err)
 		return
 	}
-	defer os.RemoveAll(dir)
+	defer func() {
+		if err := os.RemoveAll(dir); err != nil {
+			fmt.Println("remove temporary directory:", err)
+		}
+	}()
 
 	private, err := bisign.Generate("example-key", 2048)
 	if err != nil {

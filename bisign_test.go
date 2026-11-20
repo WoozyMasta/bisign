@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 WoozyMasta
+// Source: github.com/woozymasta/bisign
+
 package bisign
 
 import (
@@ -65,7 +69,7 @@ func TestGenerateLoadWriteRoundtrip(t *testing.T) {
 		t.Errorf("pub name: got %q want %q", loadedPub.Name, priv.Public().Name)
 	}
 
-	if loadedPub.Key.N.Cmp(priv.Key.PublicKey.N) != 0 {
+	if loadedPub.Key.N.Cmp(priv.Key.N) != 0 {
 		t.Error("public modulus mismatch after roundtrip")
 	}
 }
@@ -87,7 +91,7 @@ func TestLoadRSAPrivateRejectsOpenSSH(t *testing.T) {
 
 // TestLoadRSAPrivateSupportedEncodings covers each supported private-key container.
 func TestLoadRSAPrivateSupportedEncodings(t *testing.T) {
-	key, err := rsa.GenerateKey(rand.Reader, 1024)
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatalf("GenerateKey: %v", err)
 	}
@@ -133,12 +137,13 @@ func TestLoadRSAPrivateSupportedEncodings(t *testing.T) {
 
 // TestLoadRSAPrivateInvalidInputs covers encrypted and non-RSA import paths.
 func TestLoadRSAPrivateInvalidInputs(t *testing.T) {
-	key, err := rsa.GenerateKey(rand.Reader, 1024)
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatalf("GenerateKey: %v", err)
 	}
 
 	pkcs1DER := x509.MarshalPKCS1PrivateKey(key)
+	//nolint:staticcheck // Exercise the legacy encrypted PEM import path.
 	encryptedBlock, err := x509.EncryptPEMBlock(
 		rand.Reader,
 		"RSA PRIVATE KEY",
@@ -945,6 +950,8 @@ func TestPrivateKeyExportRejectsUnsupportedPrimeLayout(t *testing.T) {
 	t.Parallel()
 
 	t.Run("unequal prime widths", func(t *testing.T) {
+		t.Parallel()
+
 		var key *rsa.PrivateKey
 
 		for key == nil {
@@ -993,6 +1000,9 @@ func TestPrivateKeyExportRejectsUnsupportedPrimeLayout(t *testing.T) {
 	})
 
 	t.Run("multiple primes", func(t *testing.T) {
+		t.Parallel()
+
+		//nolint:staticcheck // A multi-prime key is required to cover BI rejection.
 		key, err := rsa.GenerateMultiPrimeKey(rand.Reader, 3, 1024)
 		if err != nil {
 			t.Fatalf("GenerateMultiPrimeKey: %v", err)
@@ -1463,7 +1473,7 @@ func TestFixtureBinaryRoundtripStability(t *testing.T) {
 	}
 
 	for _, name := range []string{"dayz-v2", "dayz-v3", "arma-v2", "arma-v3"} {
-		game := strings.Split(name, "-")[0]
+		game, _, _ := strings.Cut(name, "-")
 		path := filepath.Join(fixtureDir, game, "signatures", name+ExtBISign)
 		assertSignatureFixtureRoundtripStable(t, path)
 	}
@@ -1809,7 +1819,7 @@ func decodeReferenceSignature(data []byte) (referenceSignature, error) {
 	}
 
 	keySize := int(bits / 8)
-	if blockSize != uint32(20+keySize) {
+	if blockSize != StaticHeaderBlockSize+bits/8 {
 		return result, errors.New("BI public key block size mismatch")
 	}
 
