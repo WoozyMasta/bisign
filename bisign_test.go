@@ -913,7 +913,9 @@ func TestRSAExponentMustFitBIField(t *testing.T) {
 		t.Fatalf("Generate: %v", err)
 	}
 
-	wideExponent := int(uint64(^uint32(0)) + 1)
+	wideExponentValue := uint64(^uint32(0))
+	wideExponentValue++
+	wideExponent := int(wideExponentValue)
 	pub := *priv.Public().Key
 	pub.E = wideExponent
 	if _, err := MarshalPublic(&PublicKeyFile{

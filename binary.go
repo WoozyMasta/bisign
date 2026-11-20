@@ -53,7 +53,7 @@ func safeU32(i int) uint32 {
 		return 0
 	}
 
-	if i > math.MaxUint32 {
+	if uint64(i) > uint64(math.MaxUint32) {
 		return math.MaxUint32
 	}
 
